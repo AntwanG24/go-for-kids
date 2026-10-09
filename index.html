@@ -144,6 +144,10 @@ input.gate{font-size:26px;width:120px;padding:8px;border-radius:12px;border:2px 
 .quiz-q{margin-top:8px;font-size:19px;font-weight:800;background:#f3ecff;border:2px dashed #a77bff;border-radius:14px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
 .plan-ctl{margin:6px 0}
 
+.voice-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #eee;font-size:18px}
+.voice-pick{display:flex;gap:6px;align-items:center;flex:1;min-width:240px;justify-content:flex-end}
+.voice-pick select{font-size:16px;padding:8px;border-radius:10px;max-width:100%;flex:1}
+
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#3b2a1a;color:#fff;padding:12px 22px;border-radius:30px;font-size:20px;opacity:0;transition:opacity .3s;z-index:70;pointer-events:none}
 </style>
 </head>
@@ -1456,7 +1460,7 @@ function judge(pos, me, c, line, fi, O) {
       sum = tags.indexOf('openCorner') >= 0 ? '佔到一個角，地盤變大！' : tags.indexOf('enclose') >= 0 ? '角穩了，地比較大！' : tags.indexOf('extendSide') >= 0 ? '往邊上開，地盤變大！' : tags.indexOf('connect') >= 0 ? '連在一起，比較不會被吃。' : '地盤變大一點。';
       if (co > cm && c.lost != null && co <= c.lost) { v = c.rank === 0 ? 'good' : 'ok'; s = (c.rank === 0 ? 8 : 4) - co; sum = '被打吃的子逃不掉（征子），不要逃！去下大地方，只會少 ' + co + ' 顆。'; }
       else if (co > cm) { v = 'bad'; s = -4 - co; sum = '小心：' + O + '子會吃掉你 ' + co + ' 顆。'; }
-      else { v = c.rank === 0 ? 'good' : 'ok'; s = (c.rank === 0 ? 8 : 4) + (cm - co) * 3; if (cm) sum += '還吃掉 ' + cm + ' 顆。'; }
+      else { v = c.rank === 0 ? 'good' : 'ok'; s = (c.rank === 0 ? 8 : 4) + (cm - co) * 3; if (cm) sum += '還吃掉 ' + cm + ' 顆。'; if (c.lost) sum = '被打吃的子逃不掉（征子），不要逃！' + sum; }
       break;
     }
     default: return null;
@@ -1471,6 +1475,97 @@ root.GoPlan = API;
 
 </script>
 <script>
+window.VOICE_CLIPS="000b5d08 003588cf 005588a6 00829d2d 0088e525 0149209a 01d7764b 020b8468 027916d1 02a14def 02af8efd 02bae5f4 0304784f 0311e923 0342174b 03592a38 0370ff9c 041c31dc 045a8ac7 045e6f22 047be33a 04ac12ac 04b115d3 04d111d1 04eb6ec4 04ff1947 0520a02c 05840f12 058450c4 059a4138 05aecc7e 062a4ced 063cad93 064c20e2 06a14252 07c518a1 07cfbb9f 082832e8 083a514d 084c142f 085d448f 085eaf82 0866aaf3 0872305f 08a5b678 08c30a13 091b12a9 09276244 092e3edf 093c94aa 09d1727d 09dd6a5d 0a538e0b 0a789671 0ab9f58e 0ac30264 0aed82e9 0b2c358e 0b3544fe 0b6cfa23 0c0a5dcd 0c0cbab3 0c153812 0c4ee344 0c7c9c7d 0c90cbd8 0d2c0c33 0d3625c1 0d4ed444 0d57c113 0d76e454 0d77e747 0d826c0d 0db6c87b 0dd67adc 0de5ef05 0dea0ec9 0dee7fd0 0e1dd77b 0e47d28c 0e592467 0e6eedc5 0e71b911 0e9b7815 0ea8f30b 0ecba7af 0f0f50ae 0f1319b1 0f148142 0f205122 0f5bde38 0f693b1b 0fc5ee3d 0ff98e90 10009579 102794f9 10766bdb 10d4a3b9 10d91352 11003222 11515e59 115a5b27 116d941c 11db53be 1221db5c 12fc8b6c 130012c7 1370d4ac 1396c44d 13ad8a59 151879d8 155fb514 160941d2 160aa694 163e6d95 166ddec5 16d3d418 16dbc6b3 171a005d 17389eee 173aa1b0 17846794 1786e852 17b4d55f 17d55f1d 182056d6 18245e5a 184b13d8 1851aed5 185d41b4 18790b23 188f28ed 18902daf 18a3eef4 18cb5b3a 18cf3c60 18f8ebfa 18fafc68 190b5db1 1917b7ad 191dd6b0 19364f8a 19acd948 19bf3ada 19d355d2 1a0011c5 1a1a2ebc 1ab3d8d1 1ad0d2fb 1ae853b4 1afd50d0 1b0dd6a6 1b1b0403 1b322af5 1b469ffa 1b4e0233 1b74bc14 1b7e1e27 1bb0ec28 1bc50ef5 1bdfc9ea 1c124b03 1c2065aa 1c6baaa0 1cbe72ff 1cdc9f4e 1d10e976 1d67a2ed 1d726835 1d7d4b30 1d8202da 1db63564 1ddd1612 1e1222ad 1e3b9a51 1e7bf3d0 1eb442fe 1f041aa7 1f3e264f 1f4d363c 1f6fa7de 1fb6a558 1fc83f15 20086311 201a7c76 202f8056 20457c32 2064ccea 20685ca1 21062422 210c7938 21294cdf 212cb4e1 217a7d48 21909af9 21e04bfa 21ee753e 2227452d 22392013 225aea3a 225c03a2 227da079 228f667b 229cd47c 22b1f019 22bf31f5 22d8fce2 22da6538 2308a008 233021be 2339c8a6 23658b2c 2376ae42 23b63279 250151c8 253df734 25440c35 257babb1 25cdbeab 25d75c21 25e32850 264ba012 2690cd12 26c65e36 26d54f45 26ef03bc 26f9d751 27312b28 2753d7fd 276bd6ad 27a3c061 27c395ca 28213e9e 283ed61f 2861dae3 286aa340 2895221b 289f5441 28b59814 2923f962 29257723 297e9eaa 29d28915 29dd5156 29ecfeb7 2a33208a 2a3c9e23 2a7512dd 2b0c6d43 2b0cff24 2b194bf6 2b323bcf 2bb8fdd4 2bc66c4d 2bc815bf 2bdf3de1 2beffb90 2c061d1d 2c077cea 2c17fc44 2c27c259 2c38b076 2c64cb4c 2cafa506 2ccdcc82 2ce9ebec 2d3309ca 2d91362b 2db1fca5 2dd63450 2e6670f3 2e681c22 2e8c079c 2e9453df 2ea6f8df 2eb004ea 2ee9ffd6 2f0c03ac 2f2e4311 2f487b8e 2f95758d 2f9d6261 2fba365f 2fe75af9 2ff055be 3062978c 308b9201 30cd9a72 30d7fdb9 30e67980 31071b78 3119dadc 3141dabb 316626fd 3167ace9 3167cf71 31878cdd 31a8ed77 31b8a852 31c9a709 3276b4f1 327e0df1 32c357dd 32db986e 334c1d96 3353deb2 33df7a0d 33e94d6f 33ea3d85 343dc94e 34423e3a 344316b5 3445d863 34a02022 34de21f2 34f1fc68 34f97168 35017a8a 352f2c5e 354b9084 357d4c1f 35d13fb2 35d7d65f 35f711c5 361fe0b9 3695759b 36a5020b 36de720f 3714861d 372f7c6b 37430b4a 37a7191e 37b0efe4 37ecfe9d 38b9c062 38c54a75 38db52c6 38dbb1a4 39145027 3952d81d 3960f308 3982e598 39b6d586 39b72012 39bfc692 3a3541e6 3a9f757e 3aa9f8b5 3abaa238 3b08fe93 3b0ef371 3b1506b0 3b727c8e 3b9f9069 3ba6b7e2 3bb0f114 3bb8c631 3bd88644 3c1ca2d9 3c236967 3c92f0ed 3ce39c0d 3d117ca3 3d6d712f 3d788dd3 3daaa3b8 3db5471b 3dfefcc4 3dff832b 3e309a64 3e4905cf 3e5abfeb 3ea9b02e 3f161269 3f548454 3f70d65c 40244c5f 404b5443 40603a38 406b784d 4071813b 40b30f36 41259016 416637e2 417a60db 417d0e52 419e3757 41c1d768 41c6d8da 41cfc596 41d86e6f 41e9585a 41f6e60f 422a7d3a 424cbb47 4255a494 426d8850 429cb406 435bf787 4368927b 4388fdd6 43bc6664 43d49b19 43dc567d 43f342c3 440b1cc7 44180fe4 4424a0d3 444277e9 44e4b271 44fc4379 4535cb04 457fc86d 4593b5bd 46097b29 4645c664 46a4f796 46aee56d 46b7c0cd 4751d6ac 478b460c 478d08e0 4792520d 47ddcfe0 48158731 481e9be7 48e5c08f 491e4bf7 49733473 499abd64 49aafd12 49b2981d 49eabb5f 4a16b6d6 4a2ba69a 4a86b336 4a987377 4aab884a 4ab6aa48 4aec741e 4aece118 4b00d73d 4b031768 4b6249cc 4bcd0305 4bef97f2 4c522510 4caca2de 4cbcd231 4cc1b47e 4ccefdb9 4ce38e33 4ce4d57b 4d3730d9 4d55b4ac 4d5d89dd 4d60c27d 4da304ec 4dd01514 4e42a6e6 4f12ece1 4f1cd565 4f3d189c 4f6b08e9 4fed5641 501aac52 502d5ebb 502e7946 50335216 50381ea5 50605cf9 50eb41ef 50fa97a8 50fb2559 510ac7c3 512a5885 518a100a 51db160a 524e170f 5273f6b3 52788cbb 529a816c 52b5cf72 52e02e5a 5318d87c 532be249 53b47eb8 53b75d50 53ea81a2 541c71ac 5423f834 54265711 544e2b17 54786440 548763c0 548d3f57 549b3ebc 54a46e7f 553d0e9e 5540b88a 5561b592 56117075 561a483f 5623739b 5633a035 5636a101 563de753 56620035 568006d4 5684d29c 569a2db3 56c70fc3 56cd5e0e 5750454e 5763a666 57fa0d80 5820ebfb 58250287 586157ee 5879e6a4 58fc65bd 591cfe26 5923a004 5954728f 596a12a4 599cf258 59a217b3 5a2a8e57 5a5f5561 5a741453 5a806420 5af35c59 5b0ee96f 5b3f9b54 5b75b3b6 5bc23aaf 5bcfeaf6 5c0dc6b6 5c1f969b 5c3cf70b 5c5dcb84 5c77aee6 5c91ee1c 5cd3ef15 5d00e8ea 5d05f81e 5e314418 5e3985e3 5e55f0ac 5efc2a55 5f4fa8cb 5f70e156 5fbff49d 5fcdbb58 600d0468 600e89ef 60185e39 602a600a 60559ece 6058b692 60670c07 60756a28 60af6ea2 60b5d846 613121e4 622687e6 623de7c4 6293fcc1 62982418 62a4a5b8 62bb6b01 62db8185 62e30c27 63523a94 637890c3 6390a496 6398331f 63c2ff10 63db624e 642267ba 64baf121 64bf15d3 64dc2532 64fe497a 652811a8 656255eb 6566fe94 656e973e 658d7754 65aff22e 65eca3b3 66015401 6613749b 66919edc 66a2992c 66aa7dd0 673013f4 676cbed5 6774d5f3 678c4ad7 67995f42 67a66bce 67ce5c4a 67e77bf5 681ababb 6828cd01 682fab90 683dce6e 68d3edd8 68de61a3 68e3c357 694dd5bc 69afbdb7 69b8c056 69da9393 6aa3afee 6aa979bf 6ab138f8 6adbc249 6b39ca05 6b3ee87c 6b8204e1 6c16de3b 6c3192c7 6c9c18b0 6cc1ab92 6d025163 6d3ea856 6d7bcf0d 6d980d9e 6debc38b 6df62063 6dfc65f2 6e0f14fb 6e6c6bd0 6ebec8b8 6f088010 6f1486e2 6f48e538 6ff5a432 700015c7 70106a50 7039aba8 70b9231b 7166b73f 71c5d629 71d4b5fb 71d5e105 71dab532 725936a5 72a0bd77 72bd3dad 72cf1660 72dacb6f 7389ee58 7413de46 7414e91d 742db45b 744b192e 745ca890 746f48f5 749e1631 74ab1efc 74e17ada 750d6ac9 750ff358 753011cd 75957e2c 75a68ad3 75baf6b1 75ff020d 7600ee0d 761970c6 761cc828 766199c1 7674d948 76892e9a 76c48bcc 76ca7d67 76d9c826 773c6dd8 774bc3d4 777a351e 777d678a 778896af 779248a1 77dee298 780126f3 780bed8f 783e34bb 78a6b050 78b01baf 78b385b9 78b75846 78bbd1ec 7913362d 7915a378 7929b0c7 7941d5c0 7989b4c5 79c27da7 79d1ef72 79e992fc 79ea54b6 7a060f59 7a386e32 7a42427a 7a52c976 7ab7c9fe 7abc9c25 7afa4561 7b0b499e 7b24decb 7b7f1d3e 7bbc3dd5 7c39501e 7cca75e8 7d0f2fd8 7d1a7ae5 7d20ae11 7d22344e 7d4095ad 7db90796 7dc350b8 7de2b16e 7ea85fd7 7eb1c89e 7eccfbb0 7f02e607 7f39ac19 7f60fe2c 7f678659 7f9d8c25 7fb0cc46 7fc03c0b 7fd2110d 7fd609ce 7fd9aab5 7fdd67ee 7ff920d4 8013a4e9 801f015b 80269d35 802bd4fb 8040dbf6 8049e4bb 80cb40e4 80ce9dbd 80e09b4d 80e39555 8110ad90 8150ab6a 81546dea 81c0ed0c 822a6d9b 824456ce 824f3f41 8254dd73 825f0f64 82636cc0 82756e45 8297dddb 829eb138 82cc35fc 83149778 83646519 838f1e4f 83ddd98e 83ead45d 83f25720 83f6e958 843d6550 844b4ad3 847757ae 8496f8d2 84be12fb 84c12693 84d27b51 84def51b 84e586c8 8511f090 851585f5 85357523 857293ec 8588941e 8593dad4 859528a3 85b7fab5 85d441d1 85df7ec9 85fe8e3f 8624dbd7 86b4ddeb 86dddbff 86de3015 86e02dd3 86eaba03 8704e7b5 872af6a0 8735f225 873649c9 8739b4e3 87516079 87d3e07d 87f404da 883bd520 886e0d23 8882bf8f 88862b4e 89071348 89235968 895254bf 8984d67f 899b8506 89ffc6eb 8a45a0a0 8a876db3 8a91d5e1 8a9f4330 8aa6f931 8ab5a40c 8abbe05c 8ad5e728 8ae41031 8af9dc93 8afb4d43 8b0e24c4 8b362bd2 8b497487 8b6ba44d 8b713c4e 8c58b148 8c6f972a 8c826755 8c8536de 8c8725e3 8c9e0d54 8c9e6398 8cb828a4 8d16d81c 8d21edab 8d2e9594 8d791bed 8dfd60da 8e28f35d 8e3ea836 8e80f511 8ebdaa5f 8f1946e8 8f32dd16 8f362503 8f7491cd 8f9dbf36 8ff362e8 900d1353 901db966 907203f0 9072ba54 90801b31 909c7053 90c1eacb 9147aeab 914fdb08 9152d35d 9167e772 921735b7 921d4952 922f19b2 927d8d26 92b89d1e 92cb442d 930de584 931f2937 93277a84 9339e6b6 9358d66e 9393e4e6 93e9f314 9417b3bb 941e361c 942c442b 94701bca 948eac7f 94ada069 94c6033c 94d6bb58 951545b1 956bde46 9578ced4 959b47fd 959ddf67 95ac5e4f 95bb1a0d 96165263 961b5a6e 9684c706 9696c846 96dcb61f 96eab5bc 96f41cd4 971aea33 97de8b93 981ce2ae 98220df2 985b6685 98d56342 99385875 996c5ac5 9991b2a4 99ba96a2 99f0862f 9a1899da 9a1b0701 9a5469a6 9a799be2 9ac966c1 9b0c515d 9b16911b 9b39fc43 9b4fd899 9b623a1f 9b8b9f72 9ba7bc27 9ba95897 9baaea57 9be8b108 9beb20f8 9bf10e35 9bffc311 9c014bc4 9c0c1575 9c2224a7 9c2d7126 9c5fed14 9c6be2bf 9c796b8a 9cb3fcef 9d3f1111 9d5d0086 9db0a116 9db325dc 9dc7148f 9df8296f 9e1a9f8c 9e2ad25b 9e423ad1 9e4570ea 9e8ecbd3 9ed809d7 9ef75dd5 9f1a84b0 9f58dacf 9f8e2356 9f988b11 9f9b0c42 9fa73eae 9fad25f4 9fb45bd7 a028b8a3 a045a9d9 a046cf52 a0924ab3 a0a722fa a0bea2ed a0de26dd a165b020 a18764c0 a1e38352 a23b38e7 a25d302d a2819fe2 a2935eef a29b7a7a a2e5a765 a2f96ce7 a303aa28 a31158fd a336d516 a338134f a383fda7 a3a75da4 a3b0e337 a3b29560 a3dbc72f a3f6560a a408e8ce a40e19a8 a46302e5 a47b7a66 a4bf0432 a4c295f9 a50d87ff a5110157 a525779d a585c76c a5b3e416 a5d9f108 a5ee23ba a6139063 a62f8cca a656238a a673ff6b a6d98325 a6fa5072 a721c1ba a74687ef a75ba5c2 a763dd19 a7c11100 a7c639f2 a7d0450d a8075b5c a820c491 a8230ab6 a853aed7 a88375af a8be7fb2 a901c801 a93c534b a988c3bd a9a5ac03 a9a8913a aa32334e aa85f483 aad01500 aaebe956 aafe95dd ab479a2b abf3867f abf5df5a ac0af096 ac3b355f ac953f31 acbf5d25 acd85b82 acf70b0e ad4d750f ad723489 adad8065 adb57332 ae280413 ae2ed115 ae47aeee ae5a8a2a ae72667e ae8e9429 ae9fee96 aed78ebf af0e63eb af23b185 af75c43c afb2af40 aff1a0d5 b042e3da b04af85a b0873305 b08f31be b0b3a0fa b0c53754 b0e9768c b1218349 b1300969 b1ccc7e3 b1fc584f b266367e b28978f7 b2b3528b b2d3977f b2e0da9f b34458aa b3b99dbc b3d8e01d b3de9086 b4252686 b4520581 b4da4a03 b4de1e30 b5107711 b515d2e8 b51a689b b5472abe b59d7500 b632102d b641f6f4 b662c683 b66b306f b6997eb1 b6d769bc b6efac1d b7c2651a b7d20514 b81f6135 b82bf6f0 b84a57a9 b860a03c b8a703a1 b8ab3ff4 b90ba4a4 b93b1a09 b94e0351 b9a1037d b9d3591e ba729c1a bac15b6b bb55cf6c bb97d5bf bbd9e33b bbec3200 bbf4e083 bbfe6051 bc094930 bc28c888 bcbffc08 bd11095a bd208415 bd2c5ab1 bd30d4d8 bd402acf bd44cfca bd6a1175 bd980bb2 bd9fce58 bdaae397 bdc6b8d9 bdd1d829 bdf3eb73 bdf97d9b be561563 be6afd17 be9919ef bec047fc bf24e49f bf6c0fdc bf90b581 bf9a10f4 bfb30243 bfd6c366 bfde0ea0 c01b9b57 c01c421a c039905f c063d600 c065ab80 c0a3aeac c0ccfd89 c0e9d60b c1197b80 c1590dd2 c15c8c29 c15d9ff6 c15eb9dd c19b7f68 c1a6bebb c2019f6d c214bb77 c21cad39 c24a8687 c28daacc c28de896 c2bb816b c307be6e c31dd3a4 c34159c5 c389224c c38f6f90 c3a6eba9 c3a7b43f c3b9f93d c3ee7da9 c411313d c4330eba c4584f73 c46b45f6 c508de04 c5676c1d c57d5052 c5c50383 c6273056 c6906172 c6da0142 c6ffb957 c736fa3b c79bcda8 c7a56630 c7d4d65b c814a0b5 c8264208 c8ec7ffc c90ddc6a c928a958 c92ea7cd ca6d5fab ca84a64e cb667d04 cbc3f4e5 cc27eded cc34057f cc606a2d cc6bde90 ccb1f4a6 ccb8d23b ccf31c9a cd03a219 cd4daef8 cda00ea4 cdd4a344 ceb31987 cedd64bb ceeadea2 cf4b001d cf6287cc cf8a9c60 cfbce763 cfc4d366 d01e5902 d05e0b95 d05eeb8c d0889201 d0ca6ecf d0e5450c d1126e27 d13e9841 d146ea1c d148b435 d162f5b1 d16d087b d16e9e07 d180cb22 d1b84b07 d1c81589 d1d7aa19 d2a99fcb d2f03059 d2faf3f4 d2fedd28 d318de56 d34db067 d3bb61ad d3fc75dd d3fe0756 d446598e d4a2b348 d4c877b5 d4d9657d d504f3bf d5433443 d6578356 d68b1c73 d6e242e9 d737b754 d788f7d4 d79f62ae d7c96347 d7ceb6c4 d7d5e97a d80b72fa d80c5ca4 d8153b33 d84bddd9 d8887673 d88c84b3 d8e25675 d935d294 da275c63 da4a87b5 da4ad57b dac66c58 dad91624 dadcb88a dafeec50 db3d6d18 db8f4aea dbcc811a dbe20daa dc3043cd dc519b41 dc594a7f dc8eed91 dc8fd158 dca1e9e0 dccaa9cd dcd93b97 dcdbc2cc dcf4efb2 dcfbe0c6 dd13780c dd19cb78 dd660038 ddb8e849 de31e826 de4381f1 de5dbbe5 dec024a1 df1d4b9b df53cc4d df7feeda df90ea53 dfc084bf dfdb3600 dfe7ecb7 e014fef1 e02c5ffe e06ced6f e076f1a2 e1099636 e11f8876 e1726cba e1aa9331 e1ab3dd0 e1acea87 e21b1ba5 e22eefb0 e29fcd0c e2a166c3 e2dcc6dc e2e10fcc e2ec4695 e302b4c5 e372506e e37e0c47 e3ab1421 e41e4548 e4642af0 e4651ebe e4657e74 e475503e e48951bf e4c70859 e4dbd5a8 e524aff3 e55f99bf e5abe716 e656d9db e665f072 e69dd13d e69e30b1 e76d43de e779ff9c e7bfeca7 e7d7df35 e7e05027 e80c44e8 e82a80dc e833b5c2 e84cd637 e8614081 e875e41d e882d495 e8b6289d e8e2ce7f e8e473d4 e8e8ef72 e92fd625 e9e6cd2b e9e839e3 e9e99762 ea10ab62 ea22fee3 eaeec3be ebb6e408 ebc350e1 ebc73677 ec17b0c2 ec37d75b ec71404e ed1a93ef ed598067 edc6e377 ee32d7f6 ee68aa63 ee92cc6a ee93e165 ee973c41 eebf229d eef17838 ef4c2728 ef78c962 ef9bffff efc89934 f023d98a f049b467 f0646dce f08d479a f0eedada f0f7a4f5 f1249d6e f138166a f13b9671 f1b592df f1b980f5 f2338a71 f262d189 f2a4a7ca f2cb686f f387cafb f3de239c f3f45960 f40db548 f471336f f4a9c886 f4b0dfc0 f4b60121 f4c74757 f4c75f0b f4c81d0b f4d2b4ef f535aaa7 f53cd61a f541ac3c f56ca730 f584decc f67e7eec f6880f49 f6aae73c f6cdf28b f75f542d f802bd30 f811d8a0 f83665e0 f849ada8 f88712a8 f9646594 f96d759a f972ceab f977c094 f9c3df00 f9da0e9a f9fcd5b4 fa040131 fa0fd6e6 fa337a67 fa4a4beb fa4f2e2c fa664fd1 fa6bca4e fa6ff6d9 fa993ebd fa9a001e fb455ddb fb5545a6 fb967e44 fbca03b5 fbdb83ae fbf2c7ff fc320e5e fc721827 fc773b6d fc9d6cb9 fcc7fb23 fd062077 fd90d5b4 fd947984 fdc686d9 fe660509 fe6689d9 fe8ec9e6 fea84030 feaf1e98 fee13103 ff2077d9 ff4dc87c ff7d5543 ffe913a7";
+/* ---- voice.js ---- */
+/* Natural voice: play pre-generated neural zh-TW clips (audio/<hash>.mp3) sentence by sentence;
+   fall back to speechSynthesis for sentences without a clip, or when the audio folder is missing (offline single file). */
+(function (root) {
+var EMO = /[\u{1F300}-\u{1FAFF}\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u22EF\u2026]/gu;
+var ZY = /[\u3105-\u3129\u02CA\u02C7\u02CB\u02D9]/;
+function clean(t) { return String(t).replace(/<[^>]+>/g, '').replace(EMO, '').replace(/[，、]?\s*唸\s*[\u3105-\u3129\u02CA\u02C7\u02CB\u02D9]+/g, '').replace(/[（(]\s*[\u3105-\u3129\u02CA\u02C7\u02CB\u02D9\s]+[）)]/g, '').replace(/[\u3105-\u3129\u02CA\u02C7\u02CB\u02D9]+/g, '').replace(/[「」【】『』]/g, '').replace(/[ \t\u3000]+/g, ' ').trim(); }
+function segs(t) {
+  var c = clean(t), out = [], re = /[^。！？!?；：\n]+[。！？!?；：]*/g, m;
+  while ((m = re.exec(c))) { var s = m[0].replace(/^\s*\d+\.\s*/, '').trim(); if (/[\u4e00-\u9fff]/.test(s)) out.push(s); }
+  return out;
+}
+function hash(s) { var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ('0000000' + (h >>> 0).toString(16)).slice(-8); }
+var CLIPS = null, el = null, token = 0, missing = false, BASE = 'audio/';
+function clips() { if (!CLIPS) { CLIPS = {}; String(root.VOICE_CLIPS || '').split(' ').forEach(function (k) { if (k) CLIPS[k] = 1; }); } return CLIPS; }
+function audio() { if (!el && typeof Audio !== 'undefined') { el = new Audio(); el.preload = 'auto'; } return el; }
+function has(s) { return !missing && !!clips()[hash(s)]; }
+function stop() { token++; if (el) { try { el.pause(); } catch (e) {} } if (root.speechSynthesis) root.speechSynthesis.cancel(); }
+// iOS: the audio element must be started once inside a user gesture
+var unlocked = false;
+function unlock() { if (unlocked) return; unlocked = true; var a = audio(); if (!a) return; try { a.muted = true; a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='; var p = a.play(); var um = function () { a.muted = false; }; if (p && p.then) p.then(um, um); else um(); } catch (e) { a.muted = false; } }
+if (typeof document !== 'undefined') { document.addEventListener('pointerdown', unlock, true); document.addEventListener('keydown', unlock, true); }
+function say(text, synth) {
+  stop(); var my = token, ss = segs(text);
+  function next(i) {
+    if (my !== token || i >= ss.length) return;
+    var s = ss[i], a = audio();
+    if (a && has(s)) {
+      var done = false, fail = function () { if (done || my !== token) return; done = true; missing = true; synth(ss.slice(i).join(''), function () {}); };
+      a.muted = false; a.onended = function () { if (done || my !== token) return; done = true; next(i + 1); };
+      a.onerror = fail; a.src = BASE + hash(s) + '.mp3';
+      try { var p = a.play(); if (p && p.catch) p.catch(function (e) { if (e && e.name === 'AbortError') return; fail(); }); } catch (e) { fail(); }
+    } else {
+      // run of sentences without clips -> one utterance
+      var j = i; while (j < ss.length && !(a && has(ss[j]))) j++;
+      synth(ss.slice(i, j).join(''), function () { if (my === token) next(j); });
+    }
+  }
+  next(0);
+}
+
+/* ---- best zh-TW system voice for the speechSynthesis fallback ---- */
+var VKEY = 'kidsZhVoice', chosen = null, vlisteners = [];
+function voiceScore(v) {
+  var n = (v.name + ' ' + (v.voiceURI || '')).toLowerCase(), l = String(v.lang || '').toLowerCase().replace('_', '-'), s = 0;
+  var zh = /^zh|^cmn|^yue/.test(l) || /chinese|國語|中文|普通話|mandarin/.test(n);
+  if (!zh) return -1;
+  if (/zh-tw|cmn-hant-tw|zh-hant/.test(l) || /taiwan|臺灣|台灣/.test(n)) s += 50;
+  else if (/zh-hk|yue/.test(l) || /cantonese|粵|hong kong|sinji/.test(n)) s -= 40;
+  else s += 10;
+  if (n.indexOf('natural') >= 0 || n.indexOf('online') >= 0) s += 100;
+  if (/hsiaochen|hsiaoyu|yunjhe/.test(n)) s += 80;
+  if (n.indexOf('google') >= 0) s += 60;
+  if (/meijia|美佳/.test(n)) s += 55;
+  if (/premium|enhanced|高品質/.test(n)) s += 30;
+  if (!v.localService) s += 5;
+  return s;
+}
+function zhVoices() {
+  if (typeof speechSynthesis === 'undefined') return [];
+  return speechSynthesis.getVoices().filter(function (v) { return voiceScore(v) >= 0; }).sort(function (a, b) { return voiceScore(b) - voiceScore(a); });
+}
+function pickVoice() {
+  var vs = zhVoices(); if (!vs.length) return null;
+  var saved = null; try { saved = localStorage.getItem(VKEY); } catch (e) {}
+  chosen = vs.filter(function (v) { return v.voiceURI === saved; })[0] || vs[0];
+  vlisteners.forEach(function (f) { f(); });
+  return chosen;
+}
+function setVoice(uri) { try { if (uri) localStorage.setItem(VKEY, uri); else localStorage.removeItem(VKEY); } catch (e) {} pickVoice(); }
+function synth(text, done, fix) {
+  done = done || function () {};
+  if (typeof speechSynthesis === 'undefined' || !text) { done(); return; }
+  if (!chosen) pickVoice();
+  var u = new SpeechSynthesisUtterance(fix ? fix(clean(text)) : clean(text));
+  u.lang = chosen ? chosen.lang : "zh-TW"; if (chosen) { try { u.voice = chosen; } catch (e) {} }
+  u.rate = 0.9;
+  var fin = false, f = function () { if (fin) return; fin = true; done(); }; u.onend = f; u.onerror = f; setTimeout(f, 2000 + text.length * 400);
+  speechSynthesis.speak(u);
+}
+if (typeof speechSynthesis !== 'undefined') {
+  pickVoice();
+  if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', pickVoice); else speechSynthesis.onvoiceschanged = pickVoice;
+  setTimeout(pickVoice, 300); setTimeout(pickVoice, 1500);
+}
+var API = { clean: clean, segs: segs, hash: hash, say: say, stop: stop, has: has, _setMissing: function (v) { missing = v; }, zhVoices: zhVoices, pickVoice: pickVoice, setVoice: setVoice, synth: synth, voiceScore: voiceScore, current: function () { return chosen; }, onVoices: function (f) { vlisteners.push(f); } };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.VOICE = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* ---- puzzle.js ---- */
 /* 題目判斷 puzzle runtime: setup + judging each tap, shared by the app and the tests */
 (function (root) {
@@ -1885,20 +1980,28 @@ var sfx = {
 };
 
 /* ---------------- speech (朗讀) ---------------- */
-var zhVoice = null;
-function pickVoice() {
-  if (!window.speechSynthesis) return;
-  var vs = speechSynthesis.getVoices();
-  zhVoice = vs.filter(function (v) { return /zh[-_]TW/i.test(v.lang); })[0] || vs.filter(function (v) { return /^zh/i.test(v.lang); })[0] || null;
+function fixSay(t) { return t; }
+function synthSay(text, done) { VOICE.synth(text, done, fixSay); }
+
+function voiceRowHtml() {
+  return '<div class="voice-row"><div>🗣️ 朗讀聲音<div class="small">課程句子用預先錄好的自然人聲；其他（例如即時提示）用這個裝置的聲音</div></div>' +
+    '<div class="voice-pick"><select id="voice-sel"></select><button class="btn mini" id="voice-test">試聽</button></div></div>';
 }
-if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-function speak(text) {
-  if (!window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  var clean = String(text).replace(/<[^>]+>/g, '').replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, '').replace(/[「」]/g, '');
-  var u = new SpeechSynthesisUtterance(clean); u.lang = 'zh-TW'; u.rate = 0.9; if (zhVoice) u.voice = zhVoice;
-  speechSynthesis.speak(u);
+function wireVoiceSel() {
+  var sel = $('#voice-sel'); if (!sel) return;
+  function fill() {
+    var vs = VOICE.zhVoices(), cur = VOICE.current(), saved = null; try { saved = localStorage.getItem('kidsZhVoice'); } catch (e) {}
+    sel.innerHTML = '<option value="">自動（選最自然的中文聲音）' + (cur && !saved ? '：' + h(cur.name) : '') + '</option>' +
+      vs.map(function (v) { return '<option value="' + h(v.voiceURI) + '">' + h(v.name) + ' (' + h(v.lang) + ')</option>'; }).join('');
+    sel.value = saved && vs.some(function (v) { return v.voiceURI === saved; }) ? saved : '';
+    if (!vs.length) sel.innerHTML = '<option value="">這個裝置沒有中文語音</option>';
+  }
+  fill(); VOICE.onVoices(function () { if (document.body.contains(sel)) fill(); });
+  sel.onchange = function () { VOICE.setVoice(sel.value); testVoice(); };
+  $('#voice-test').onclick = testVoice;
 }
+function testVoice() { VOICE.stop(); VOICE.synth('你好！我是小老師，我們一起來下棋吧。', null, fixSay); }
+function speak(text) { VOICE.say(text, synthSay); }
 function maybeSpeak(text) { if (store.autoSpeak) speak(text); }
 
 /* ---------------- confetti ---------------- */
@@ -2598,7 +2701,7 @@ function renderParentGate() {
 function renderParent() {
   var sw = function (key, label) { return '<div class="switch-row">' + label + '<button class="switch' + (store[key] ? ' on' : '') + '" data-ptoggle="' + key + '"></button></div>'; };
   $('#parent-body').innerHTML =
-    '<div class="parent-box"><h3>⚙️ 設定</h3>' + sw('unlockAll', '全部關卡解鎖（不用依序過關）') + sw('sound', '音效') + sw('autoSpeak', '自動朗讀題目（需要裝置有中文語音）') +
+    '<div class="parent-box"><h3>⚙️ 設定</h3>' + voiceRowHtml() + sw('unlockAll', '全部關卡解鎖（不用依序過關）') + sw('sound', '音效') + sw('autoSpeak', '自動朗讀題目（需要裝置有中文語音）') +
     '<div class="switch-row">🔮 想幾步提示的「考考你」（先猜對方會下哪裡）<button class="switch' + (store.game.quiz ? ' on' : '') + '" data-toggle="quiz"></button></div>' +
     '<div class="btn-row" style="justify-content:flex-start"><button class="btn red" id="reset-prog">重設學習進度</button></div></div>' +
     '<div class="parent-box"><h3>📊 學習進度</h3>' + LESSONS.map(function (Ls, i) { return (i + 1) + '. ' + h(Ls.title) + '：' + (store.stars[Ls.id] ? '★'.repeat(store.stars[Ls.id]) : '—'); }).join('<br>') + '</div>' +
@@ -2611,6 +2714,7 @@ function renderParent() {
     '<p>・進度存在這台裝置的瀏覽器裡（localStorage），清除瀏覽器資料會一起清掉。</p></div>';
   $('#reset-prog').onclick = function () { if (confirm('確定要把所有星星和進度清除嗎？')) { store.stars = {}; save(); toast('已重設'); renderParent(); } };
   show('parent', '家長設定');
+  wireVoiceSel();
 }
 document.addEventListener('click', function (ev) {
   var t = ev.target.closest('[data-ptoggle]'); if (!t) return;
@@ -2630,7 +2734,7 @@ $('#go-parent').onclick = renderParentGate;
 $('#overlay').addEventListener('click', function (ev) { if (ev.target.id === 'overlay') closeModal(); });
 updateSoundBtn();
 renderHome();
-window.__go = { store: store, openLesson: openLesson, renderMap: renderMap, renderSetup: renderSetup, startGame: startGame, G: G, get L() { return L; }, onPuzzleTap: function (i) { onPuzzleTap(i); }, onGameTap: function (i) { onGameTap(i); }, gameHint: gameHint, gameThink: gameThink, drawGame: drawGame, planGo: function (k) { planGo(k); renderPlan(); }, renderPlan: renderPlan, startScoring: startScoring, renderPuzzle: renderPuzzle, nextPuzzle: nextPuzzle };
+window.__go = { store: store, renderParent: renderParent, speak: speak, openLesson: openLesson, renderMap: renderMap, renderSetup: renderSetup, startGame: startGame, G: G, get L() { return L; }, onPuzzleTap: function (i) { onPuzzleTap(i); }, onGameTap: function (i) { onGameTap(i); }, gameHint: gameHint, gameThink: gameThink, drawGame: drawGame, planGo: function (k) { planGo(k); renderPlan(); }, renderPlan: renderPlan, startScoring: startScoring, renderPuzzle: renderPuzzle, nextPuzzle: nextPuzzle };
 })();
 
 </script>
