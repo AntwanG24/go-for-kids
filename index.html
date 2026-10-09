@@ -115,6 +115,35 @@ input.gate{font-size:26px;width:120px;padding:8px;border-radius:12px;border:2px 
 }
 .board-19 svg{touch-action:none}
 
+.btn.think{background:linear-gradient(135deg,#7c4dff,#4aa8ff)}
+.btn.mini{font-size:18px;padding:10px 14px;min-width:0}
+.plan-box{background:#fff;border-radius:20px;padding:10px 12px;box-shadow:var(--shadow);margin:8px 0}
+.thinking-chip{font-size:20px;font-weight:800;text-align:center;padding:10px}
+.spin{display:inline-block;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.plan-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.plan-card{text-align:left;background:#fafafa;border:3px solid #e6e6e6;border-radius:16px;padding:8px 10px;color:var(--ink);font-size:15px;line-height:1.35}
+.plan-card.sel{box-shadow:0 0 0 3px rgba(255,122,89,.35);border-color:var(--pri);background:#fff8f2}
+.plan-card .pc-h{display:flex;justify-content:space-between;align-items:center;font-size:18px}
+.plan-card .pc-t{font-size:18px;font-weight:800;margin:2px 0}
+.plan-card .pc-s{font-size:14px;opacity:.85}
+.verdict{font-size:14px;font-weight:900;border-radius:10px;padding:2px 8px;color:#fff}
+.v-good .verdict,.verdict.v-good{background:#3cc47c}.v-ok .verdict,.verdict.v-ok{background:#f0a020}.v-bad .verdict,.verdict.v-bad{background:#e04848}
+.plan-card.v-good{border-color:#bfe9cf}.plan-card.v-bad{border-color:#f5c2c2}.plan-card.v-ok{border-color:#f6dfb0}
+.plan-card.sel.v-good{border-color:#3cc47c}.plan-card.sel.v-bad{border-color:#e04848}.plan-card.sel.v-ok{border-color:#f0a020}
+.plan-line{margin-top:8px}
+.pl-title{font-size:19px;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pl-title .say{margin-left:auto;width:40px;height:40px;border-radius:50%;background:#eef6ff;font-size:20px}
+.plan-steps{margin:6px 0;padding-left:4px;list-style:none;font-size:18px;line-height:1.45}
+.plan-steps li{padding:5px 8px;border-radius:12px;cursor:pointer;display:flex;gap:8px;align-items:flex-start}
+.plan-steps li.cur{background:#fff1c9;font-weight:800}
+.plan-steps li.done{opacity:.7}
+.plan-steps .dot{width:16px;height:16px;border-radius:50%;flex:none;margin-top:5px}
+.plan-steps .dot.b{background:radial-gradient(circle at 35% 30%,#666,#000 70%)}.plan-steps .dot.w{background:radial-gradient(circle at 35% 30%,#fff,#ccc 80%);border:1px solid #999}
+.plan-sum{font-size:18px;font-weight:800;background:#eef9f1;border-radius:12px;padding:6px 10px}
+.quiz-q{margin-top:8px;font-size:19px;font-weight:800;background:#f3ecff;border:2px dashed #a77bff;border-radius:14px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.plan-ctl{margin:6px 0}
+
 #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#3b2a1a;color:#fff;padding:12px 22px;border-radius:30px;font-size:20px;opacity:0;transition:opacity .3s;z-index:70;pointer-events:none}
 </style>
 </head>
@@ -148,7 +177,7 @@ input.gate{font-size:26px;width:120px;padding:8px;border-radius:12px;border:2px 
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div id="toast"></div>
-<script>
+<script id="core-src">
 /* ---- engine.js ---- */
 /* 圍棋規則引擎 Go rules engine (no dependencies). Works in browser and Node. */
 (function (root) {
@@ -1132,6 +1161,316 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 root.GoAI = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* ---- plan.js ---- */
+/* 想幾步：multi-step hint lines (我→對方→我…) built from real tactical reading + the computer's evaluation.
+   Every step's explanation is computed from what actually happens on the board when the move is played. */
+(function (root) {
+'use strict';
+var E = root.GoEngine || (typeof require !== 'undefined' && require('./engine.js'));
+var AI = root.GoAI || (typeof require !== 'undefined' && require('./ai.js'));
+var BLACK = E.BLACK, WHITE = E.WHITE, EMPTY = E.EMPTY, opp = E.opp;
+var CN = { 1: '黑', 2: '白' };
+function now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+function libsAt(pos, i) { return E.group(pos.b, pos.n, i).libs.length; }
+function readOpt() { return { esc: 3, nodes: 0, max: 6000 }; }
+function canCap(pos, t, attackerToMove) { return E.canCapture(pos, t, attackerToMove, 40, readOpt()); }
+
+/* ---------- reply generator: the computer's own choice (tactics first, then evaluation) ---------- */
+function reply(pos, color, ctx) {
+  var h = AI.hint(pos, color, { time: ctx.mcTime, moveNo: ctx.moveNo + 10, komi: ctx.komi });
+  return h && h.move >= 0 && E.isLegal(pos, h.move, color) ? h.move : -1;
+}
+
+/* ---------- forced fight around a target group (ladder / net / atari / escape) ---------- */
+function attackerMove(pos, t, ac) {
+  var g = E.group(pos.b, pos.n, t);
+  if (g.libs.length === 1) return E.isLegal(pos, g.libs[0], ac) ? g.libs[0] : -1;
+  if (g.libs.length >= 3) return -1;
+  var best = -1, bestL = 99;
+  g.libs.forEach(function (m) {
+    var r = E.play(pos, m, ac); if (!r.ok) return;
+    if (r.pos.b[t] === EMPTY) { best = m; bestL = -1; return; }
+    if (!canCap(r.pos, t, false)) return;
+    var myL = libsAt(r.pos, m), L = libsAt(r.pos, t) * 10 - myL;
+    if (L < bestL) { bestL = L; best = m; }
+  });
+  return best;
+}
+function defenderMove(pos, t, tc) {
+  var g = E.group(pos.b, pos.n, t), cands = E.defenderMoves(pos, g), saving = -1, sv = -1;
+  cands.forEach(function (m) {
+    var r = E.play(pos, m, tc); if (!r.ok || r.pos.b[t] === EMPTY) return;
+    if (!canCap(r.pos, t, true)) { var v = libsAt(r.pos, t) + r.captured.length * 3; if (v > sv) { sv = v; saving = m; } }
+  });
+  if (saving >= 0) return { move: saving, saves: true };
+  var bd = E.bestDefence(pos, t);
+  return { move: bd, saves: false };
+}
+/* play the fight out (up to maxPlies) — attacker colour `ac` tries to capture group at t */
+function runFight(pos, t, ac, maxPlies, stubborn) {
+  var tc = opp(ac), moves = [], cur = pos, result = 'unclear', failed = false; stubborn = stubborn || 0;
+  for (var k = 0; k < maxPlies; k++) {
+    if (cur.b[t] === EMPTY) { result = 'captured'; break; }
+    var L = libsAt(cur, t);
+    if (L >= 3) { result = 'escaped'; break; }
+    var m;
+    if (cur.toPlay === ac) {
+      m = attackerMove(cur, t, ac);
+      if (m < 0 && L === 2 && stubborn > 0) { // keep chasing to show why it fails (ladder breaker / escape)
+        stubborn--; var gg = E.group(cur.b, cur.n, t), bestA = -1, bl = -1;
+        gg.libs.forEach(function (x) {
+          var rr = E.play(cur, x, ac); if (!rr.ok) return;
+          var d0 = defenderMove(rr.pos, t, tc), after = d0.move >= 0 ? E.play(rr.pos, d0.move, tc) : null;
+          var tl = after && after.ok ? libsAt(after.pos, t) : 9, sc = -tl * 10 + libsAt(rr.pos, x);
+          if (sc > bl || bestA < 0) { bl = sc; bestA = x; }
+        });
+        m = bestA; failed = true;
+      }
+      if (m < 0) { result = 'escaped'; break; }
+    } else {
+      var d = defenderMove(cur, t, tc); m = d.move;
+      if (m < 0) { result = canCap(cur, t, true) ? 'dead' : 'escaped'; break; }
+    }
+    var r = E.play(cur, m, cur.toPlay); if (!r.ok) break;
+    moves.push(m); cur = r.pos;
+  }
+  if (result === 'unclear' && cur.b[t] === EMPTY) result = 'captured';
+  if (failed && result !== 'captured') result = 'escaped';
+  return { moves: moves, result: result, end: cur };
+}
+
+/* ---------- describe one step from what really happens ---------- */
+function tagsOf(pos, idx, color) {
+  var ctx = { dist: null, stones: 0, myAtari: [], oppAtari: [] };
+  try { var all = AI.evalAll(pos, color, { cands: [idx] }); return all.length ? all[0].tags : []; } catch (e) { return []; }
+}
+function describe(pos, idx, color, res, me, info) {
+  var n = pos.n, o = opp(color), mine = color === me;
+  var who = mine ? '你' : CN[color] + '子', foe = mine ? CN[o] + '子' : '你的子';
+  if (idx < 0) return { text: who + '停一手', facts: { pass: true } };
+  var after = res.pos, NB = E.nbrs(n)[idx], facts = { captured: res.captured.length, ataris: 0, atariStones: 0, escaped: 0, selfAtari: false };
+  var seen = {};
+  NB.forEach(function (p) {
+    if (after.b[p] === o && !seen[p]) { var g = E.group(after.b, n, p); g.stones.forEach(function (s) { seen[s] = 1; }); if (g.libs.length === 1) { facts.ataris++; facts.atariStones += g.stones.length; } }
+  });
+  var seenM = {};
+  NB.forEach(function (p) {
+    if (pos.b[p] === color && !seenM[p]) { var g0 = E.group(pos.b, n, p); g0.stones.forEach(function (s) { seenM[s] = 1; }); if (g0.libs.length === 1 && after.b[p] === color && libsAt(after, p) >= 2) facts.escaped += g0.stones.length; }
+  });
+  // captures that rescue own stones in atari elsewhere
+  if (res.captured.length) E.allGroups(pos.b, n).forEach(function (g) { if (g.color === color && g.libs.length === 1 && after.b[g.stones[0]] === color && libsAt(after, g.stones[0]) >= 2 && NB.indexOf(g.stones[0]) < 0) facts.escaped += g.stones.length; });
+  var myL = libsAt(after, idx); facts.libs = myL;
+  if (myL === 1 && !res.captured.length) facts.selfAtari = true;
+  var t;
+  if (res.captured.length) t = who + '提掉' + foe.replace('你的子', '你') + ' ' + res.captured.length + ' 顆' + (mine ? '！' : '子！');
+  else if (facts.ataris >= 2) t = '雙打吃！' + who + '同時打吃兩塊' + (mine ? foe : '你的子');
+  else if (facts.ataris === 1) t = info.chase ? who + '繼續打吃，' + (mine ? '追著' + foe + '跑' : '一直追你的子') : who + '打吃' + (mine ? foe : '你的子') + '（只剩一口氣）';
+  else if (facts.escaped) t = (mine ? '你的子' : CN[color] + '子') + (myL >= 3 ? '長出去，逃出來了（有 ' + myL + ' 口氣）' : '想逃，長出去（還是只有 ' + myL + ' 口氣）');
+  else if (info.net) t = who + '輕輕罩住（枷），' + foe + '跑不掉了';
+  else if (info.chaseEsc) t = (mine ? '你的子' : CN[color] + '子') + '想逃，長出去（還是只有 ' + myL + ' 口氣）';
+  else {
+    var tags = tagsOf(pos, idx, color);
+    if (tags.indexOf('openCorner') >= 0) t = who + '佔角';
+    else if (tags.indexOf('enclose') >= 0) t = who + '守角';
+    else if (tags.indexOf('extendSide') >= 0) t = who + '拆邊';
+    else if (tags.indexOf('connect') >= 0) t = who + '把棋連起來';
+    else if (tags.indexOf('cut') >= 0) t = who + '切斷' + foe;
+    else if (tags.indexOf('eye') >= 0) t = who + '做眼';
+    else if (tags.indexOf('contact') >= 0) t = who + '擋住' + foe;
+    else t = who + '下在這裡圍地';
+    facts.tags = tags;
+  }
+  if (facts.selfAtari) t += '（自己只剩一口氣，危險！）';
+  return { text: t, facts: facts };
+}
+
+/* ---------- build a line (sequence) and its verified summary ---------- */
+function buildLine(pos, me, first, kind, ctx, fightInfo) {
+  var seq = [], cur = pos, fullMoves = [first];
+  // fight continuation
+  if (fightInfo) {
+    var r0 = E.play(pos, first, me);
+    var f = runFight(r0.pos, fightInfo.t, fightInfo.ac, 60, fightInfo.ac === me && !canCap(r0.pos, fightInfo.t, false) ? 6 : 0);
+    fullMoves = fullMoves.concat(f.moves);
+    fightInfo.result = f.result; fightInfo.end = f.end; fightInfo.oppMoves = f.moves.filter(function (_, i) { return i % 2 === 0; }).length;
+  }
+  // pad quiet continuation with the computer's replies so the line has ≥ minSteps moves
+  var steps = [], capMe = 0, capOpp = 0, color = me, endPos = pos;
+  var chasing = fightInfo && fightInfo.ac === me, defending = fightInfo && fightInfo.ac !== me;
+  for (var k = 0; k < fullMoves.length; k++) {
+    var m = fullMoves[k], res = E.play(cur, m, color);
+    if (!res.ok) break;
+    var info = {};
+    if (fightInfo && k > 0) {
+      if (color === fightInfo.ac) info.chase = true; else info.chaseEsc = true;
+    }
+    if (fightInfo && k === 0 && fightInfo.ac === me && fightInfo.net) info.net = true;
+    var d = describe(cur, m, color, res, me, info);
+    steps.push({ idx: m, color: color, captured: res.captured, text: d.text, facts: d.facts });
+    if (color === me) capMe += res.captured.length; else capOpp += res.captured.length;
+    cur = res.pos; color = opp(color);
+  }
+  while (steps.length < ctx.minSteps && now() < ctx.deadline) {
+    var m2 = reply(cur, color, ctx);
+    if (m2 < 0) break;
+    var res2 = E.play(cur, m2, color); if (!res2.ok) break;
+    var d2 = describe(cur, m2, color, res2, me, {});
+    steps.push({ idx: m2, color: color, captured: res2.captured, text: d2.text, facts: d2.facts });
+    if (color === me) capMe += res2.captured.length; else capOpp += res2.captured.length;
+    cur = res2.pos; color = opp(color);
+  }
+  return { steps: steps, capMe: capMe, capOpp: capOpp, end: cur };
+}
+function stepsShown(line, maxShow) {
+  if (line.steps.length <= maxShow) return { shown: line.steps, more: 0 };
+  return { shown: line.steps.slice(0, maxShow), more: line.steps.length - maxShow };
+}
+
+/* ---------- candidates ---------- */
+function analyze(pos, me, opts) {
+  opts = opts || {};
+  var t0 = now(), n = pos.n, o = opp(me), O = CN[o];
+  var ctx = { mcTime: opts.mcTime || (n >= 19 ? 60 : 80), moveNo: opts.moveNo || 0, komi: opts.komi == null ? 6.5 : opts.komi, minSteps: 3, deadline: t0 + (opts.budget || 1400) };
+  var cands = [], used = {};
+  function add(c) { if (c.first < 0 || !E.isLegal(pos, c.first, me)) return; var key = c.first + ':' + c.kind; if (used[key]) return; used[key] = 1; cands.push(c); }
+  var groups = E.allGroups(pos.b, n);
+  var myAtari = groups.filter(function (g) { return g.color === me && g.libs.length === 1; }).sort(function (a, b) { return b.stones.length - a.stones.length; });
+  var oppAtari = groups.filter(function (g) { return g.color === o && g.libs.length === 1; }).sort(function (a, b) { return b.stones.length - a.stones.length; });
+  var opp2 = groups.filter(function (g) { return g.color === o && g.libs.length === 2; }).sort(function (a, b) { return b.stones.length - a.stones.length; }).slice(0, 4);
+  var my2 = groups.filter(function (g) { return g.color === me && g.libs.length === 2; }).sort(function (a, b) { return b.stones.length - a.stones.length; }).slice(0, 3);
+
+  // 1. my stones in atari: escape (works or ladder = tempting but bad)
+  myAtari.slice(0, 2).forEach(function (g) {
+    E.defenderMoves(pos, g).forEach(function (m) {
+      var r = E.play(pos, m, me); if (!r.ok || r.pos.b[g.stones[0]] === EMPTY) return;
+      add({ kind: 'escape', first: m, t: g.stones[0], size: g.stones.length, fight: { t: g.stones[0], ac: o } });
+    });
+  });
+  // 2. capture stones in atari
+  oppAtari.slice(0, 2).forEach(function (g) { add({ kind: 'capture', first: g.libs[0], size: g.stones.length, t: g.stones[0], fight: null }); });
+  // 3. attack groups with two liberties: atari on each liberty, and nets (non-liberty moves close by)
+  opp2.forEach(function (g) {
+    var t = g.stones[0];
+    g.libs.forEach(function (m) { add({ kind: 'attack', first: m, t: t, size: g.stones.length, fight: { t: t, ac: me } }); });
+    // nets: empty points within distance 2 of the group's liberties that are not liberties
+    var near = {};
+    g.libs.forEach(function (l) { E.nbrs(n)[l].concat(E.diags(n)[l]).forEach(function (p) { if (pos.b[p] === EMPTY && g.libs.indexOf(p) < 0) near[p] = 1; }); });
+    Object.keys(near).map(Number).forEach(function (m) {
+      var r = E.play(pos, m, me); if (!r.ok || libsAt(r.pos, m) < 2) return;
+      if (canCap(r.pos, t, false)) add({ kind: 'attack', first: m, t: t, size: g.stones.length, fight: { t: t, ac: me, net: true } });
+    });
+  });
+  // 4. double atari
+  var evals = AI.evalAll(pos, me);
+  evals.filter(function (e) { return e.tags.indexOf('doubleAtari') >= 0; }).slice(0, 1).forEach(function (e) { add({ kind: 'double', first: e.idx, fight: null }); });
+  // 5. my weak groups: defend vs ignore
+  my2.forEach(function (g) {
+    var t = g.stones[0]; if (!canCap(pos, t, false)) return; // only if opponent could capture it if I tenuki
+    var fixes = g.libs.concat(E.defenderMoves(pos, g)).filter(function (m) { var r = E.play(pos, m, me); return r.ok && !canCap(r.pos, t, true); });
+    if (fixes.length) add({ kind: 'defend', first: fixes[0], t: t, size: g.stones.length, fight: null });
+    g.weakT = t;
+  });
+  // 6. quiet: the computer's evaluation (short Monte-Carlo on the best heuristic candidates)
+  var mc = AI.mcSearch(pos, me, { komi: ctx.komi, time: opts.mcFirst || (n >= 19 ? 350 : 350), evals: evals, maxCands: n >= 19 ? 8 : 12 });
+  var quiet = mc.cands.slice().sort(function (a, b) { return b.v - a.v; }).slice(0, 2);
+  var lost = 0;
+  myAtari.forEach(function (g) {
+    var savable = E.defenderMoves(pos, g).some(function (m) { var r = E.play(pos, m, me); return r.ok && r.pos.b[g.stones[0]] !== EMPTY && !canCap(r.pos, g.stones[0], true); });
+    if (!savable) lost += g.stones.length;
+  });
+  quiet.forEach(function (c, i) { add({ kind: 'quiet', first: c.idx, rank: i, wr: c.wr, fight: null, lost: lost || null }); });
+  var weak = my2.filter(function (g) { return g.weakT != null; })[0];
+
+  // ---- build lines and verdicts
+  var plans = [];
+  cands.forEach(function (c) {
+    if (now() > ctx.deadline && plans.length >= 2) return;
+    var fi = c.fight ? { t: c.fight.t, ac: c.fight.ac, net: !!c.fight.net } : null;
+    var line = buildLine(pos, me, c.first, c.kind, ctx, fi);
+    var p = judge(pos, me, c, line, fi, O);
+    if (p) plans.push(p);
+  });
+  // "ignore the weak group" tempting line: play the best quiet move and let the opponent attack
+  if (weak && quiet.length) {
+    var line2 = buildLine(pos, me, quiet[0].idx, 'ignore', ctx, null);
+    if (line2.capOpp > 0) plans.push({ kind: 'ignore', first: quiet[0].idx, verdict: 'bad', score: -5, line: line2,
+      title: '先下別的地方', summary: '如果你不補，' + O + '子會吃掉你 ' + line2.capOpp + ' 顆！' });
+  }
+  plans.forEach(function (p) { p.key = p.first + ':' + p.kind; });
+  // choose up to three: best good/ok plans with different first moves, plus one bad (tempting) line if any
+  var good = plans.filter(function (p) { return p.verdict !== 'bad'; }).sort(function (a, b) { return b.score - a.score; });
+  var bad = plans.filter(function (p) { return p.verdict === 'bad'; }).sort(function (a, b) { return a.score - b.score; });
+  var chosen = [], firsts = {};
+  function take(p) { if (!p || firsts[p.first + (p.verdict === 'bad' ? 'b' : '')] || chosen.length >= 3) return; firsts[p.first + (p.verdict === 'bad' ? 'b' : '')] = 1; chosen.push(p); }
+  take(good[0]); if (bad.length) take(bad[0]);
+  for (var i = 1; i < good.length && chosen.length < 3; i++) if (!chosen.some(function (c) { return c.first === good[i].first; })) take(good[i]);
+  for (var j = 1; j < bad.length && chosen.length < 3; j++) take(bad[j]);
+  if (chosen.length && chosen[0].verdict === 'good') chosen.forEach(function (c, i) { if (i > 0 && c.verdict === 'good' && c.score < chosen[0].score - 6) c.verdict = 'ok'; });
+  var labels = ['A', 'B', 'C'];
+  chosen.forEach(function (p, i) {
+    p.label = labels[i];
+    var ss = stepsShown(p.line, opts.maxShow || 5);
+    p.steps = ss.shown.map(function (s, k) { return { idx: s.idx, color: s.color, captured: s.captured, text: (k + 1) + '. ' + s.text }; });
+    p.more = ss.more; p.allMoves = p.line.steps.map(function (s) { return { idx: s.idx, color: s.color }; });
+    if (ss.more) p.steps.push({ end: true, text: '⋯ 再下 ' + ss.more + ' 步：' + p.summary });
+    p.quizStep = p.steps.length > 1 && p.steps[1].color !== me ? 1 : -1;
+    delete p.line;
+  });
+  return { plans: chosen, ms: Math.round(now() - t0), me: me };
+}
+function judge(pos, me, c, line, fi, O) {
+  var cm = line.capMe, co = line.capOpp, s, v, title, sum;
+  var first = c.first;
+  switch (c.kind) {
+    case 'escape':
+      if (fi.result === 'escaped' && co === 0) { v = 'good'; s = 20 + 4 * c.size; title = '逃出去'; sum = '你的 ' + c.size + ' 顆子逃出來了！' + (cm ? '還吃掉 ' + cm + ' 顆。' : ''); }
+      else { v = 'bad'; s = -10 - co; title = '硬要逃'; sum = '逃不掉！' + O + '子一直打吃（征子），最後吃掉你 ' + co + ' 顆，越逃越多。'; }
+      break;
+    case 'capture':
+      v = co >= cm ? 'ok' : 'good'; s = 18 + 4 * c.size - 3 * co; title = '提子'; sum = '你吃掉 ' + cm + ' 顆' + O + '子' + (co ? '，可是被吃回 ' + co + ' 顆。' : '，自己沒有被吃！');
+      break;
+    case 'attack':
+      if (fi.result === 'captured' || fi.result === 'dead') {
+        var ladder = line.steps.filter(function (x) { return x.color === me && x.facts && x.facts.ataris; }).length >= 3;
+        v = co > cm ? 'ok' : 'good'; s = 16 + 4 * c.size; title = fi.net ? '枷吃（罩住）' : ladder ? '征子' : '打吃';
+        var got = Math.max(cm, fi.result === 'dead' ? c.size : 0);
+        sum = fi.net ? '枷吃成功，吃掉 ' + cm + ' 顆' + O + '子！' : ladder ? '征子成功！' + O + '子如果一直逃，最後會被吃掉 ' + cm + ' 顆。' : '吃得掉，吃掉 ' + cm + ' 顆' + O + '子！';
+        if (!cm && fi.result !== 'dead') return null;
+        if (got === 0) return null;
+      } else {
+        title = '打吃看看';
+        if (co > cm) { v = 'bad'; s = -6 - co; sum = O + '子逃掉了，' + (co ? '你反而被吃 ' + co + ' 顆！' : ''); }
+        else { v = 'ok'; s = 5; var eg = fi.end && fi.end.b[fi.t] ? E.group(fi.end.b, fi.end.n, fi.t).stones.length : 0, helped = eg > c.size + fi.oppMoves;
+          sum = helped ? '征子不成立：' + O + '子跑到自己的子旁邊（接應），逃出去了，沒有吃到。' : O + '子長出去就有 3 口氣，逃掉了，沒有吃到。'; }
+      }
+      break;
+    case 'double':
+      v = cm > co ? 'good' : 'ok'; s = 14 + cm * 3; title = '雙打吃'; sum = cm ? '對方只能救一塊，你吃掉 ' + cm + ' 顆！' : '對方救起來了，沒有吃到。';
+      break;
+    case 'defend':
+      v = co ? 'ok' : 'good'; s = 12 + 3 * c.size - 3 * co; title = '補一手'; sum = co ? '補了還是被吃 ' + co + ' 顆。' : '補好了，你的 ' + c.size + ' 顆子不會被吃！';
+      break;
+    case 'quiet': {
+      var tags = line.steps[0].facts && line.steps[0].facts.tags || [];
+      title = tags.indexOf('openCorner') >= 0 ? '佔角' : tags.indexOf('enclose') >= 0 ? '守角' : tags.indexOf('extendSide') >= 0 ? '拆邊' : tags.indexOf('connect') >= 0 ? '連起來' : tags.indexOf('cut') >= 0 ? '切斷' : '圍地';
+      sum = tags.indexOf('openCorner') >= 0 ? '佔到一個角，地盤變大！' : tags.indexOf('enclose') >= 0 ? '角穩了，地比較大！' : tags.indexOf('extendSide') >= 0 ? '往邊上開，地盤變大！' : tags.indexOf('connect') >= 0 ? '連在一起，比較不會被吃。' : '地盤變大一點。';
+      if (co > cm && c.lost != null && co <= c.lost) { v = c.rank === 0 ? 'good' : 'ok'; s = (c.rank === 0 ? 8 : 4) - co; sum = '被打吃的子逃不掉（征子），不要逃！去下大地方，只會少 ' + co + ' 顆。'; }
+      else if (co > cm) { v = 'bad'; s = -4 - co; sum = '小心：' + O + '子會吃掉你 ' + co + ' 顆。'; }
+      else { v = c.rank === 0 ? 'good' : 'ok'; s = (c.rank === 0 ? 8 : 4) + (cm - co) * 3; if (cm) sum += '還吃掉 ' + cm + ' 顆。'; }
+      break;
+    }
+    default: return null;
+  }
+  return { kind: c.kind, first: first, verdict: v, score: s, title: title, summary: sum, line: line, capMe: cm, capOpp: co };
+}
+
+var API = { analyze: analyze, runFight: runFight, describe: describe };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.GoPlan = API;
+})(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));
+
+</script>
+<script>
 /* ---- puzzle.js ---- */
 /* 題目判斷 puzzle runtime: setup + judging each tap, shared by the app and the tests */
 (function (root) {
@@ -1518,7 +1857,7 @@ function h(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&':
 /* ---------------- storage ---------------- */
 var KEY = 'goKids.v1';
 var store = { stars: {}, unlockAll: false, sound: true, autoSpeak: false,
-  game: { size: 19, level: 0, color: BLACK, handicap: 0, komi: 6.5, atariAlert: true, selfAtariWarn: true, tapConfirm: null, showCoords: false } };
+  game: { size: 19, level: 0, color: BLACK, handicap: 0, komi: 6.5, atariAlert: true, selfAtariWarn: true, tapConfirm: null, showCoords: false, quiz: false } };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { for (var k in saved) if (k !== 'game') store[k] = saved[k]; if (saved.game) for (var g in saved.game) store.game[g] = saved.game[g]; } } catch (e) {}
 store.game.size = 19;
 if (store.game.komi === 7.5 || store.game.komi === 5.5) store.game.komi = 6.5;
@@ -1648,13 +1987,21 @@ Board.prototype.render = function (o) {
     if (m.type === 'star') p.push('<g class="hint-ring"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="13" fill="#fff59d" stroke="#ffb300" stroke-width="3"/><text x="' + c[0] + '" y="' + (c[1] + 6) + '" font-size="17" text-anchor="middle">⭐</text></g>');
     if (m.type === 'preview') p.push('<circle class="hint-ring" cx="' + c[0] + '" cy="' + c[1] + '" r="' + (S * 0.46) + '" fill="url(#' + U + (o.pos.toPlay === BLACK ? 'gb' : 'gw') + ')" opacity=".5" stroke="#ff9800" stroke-width="3"/>');
     if (m.type === 'lib') p.push('<circle class="st-pop" cx="' + c[0] + '" cy="' + c[1] + '" r="11" fill="#3cc47c" stroke="#fff" stroke-width="3"/>');
+    if (m.type === 'guess') p.push('<g class="st-pop"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + (S * 0.44) + '" fill="rgba(167,123,255,.35)" stroke="#a77bff" stroke-width="4" stroke-dasharray="5 3"/><text x="' + c[0] + '" y="' + (c[1] + 6) + '" font-size="17" text-anchor="middle">❓</text></g>');
     if (m.type === 'good') p.push('<circle class="st-pop" cx="' + c[0] + '" cy="' + c[1] + '" r="15" fill="none" stroke="#3cc47c" stroke-width="6"/>');
     if (m.type === 'nope') p.push('<g class="st-pop"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="15" fill="#fff" stroke="#e04848" stroke-width="4"/><line x1="' + (c[0] - 9) + '" y1="' + (c[1] - 9) + '" x2="' + (c[0] + 9) + '" y2="' + (c[1] + 9) + '" stroke="#e04848" stroke-width="4"/></g>');
   });
   // stones
+  var ghost = {}; (o.ghost || []).forEach(function (gh) { ghost[gh.i] = gh; });
   for (var i = 0; i < n * n; i++) {
     var v = o.pos.b[i]; if (!v) continue;
     var c3 = X(i), dead = o.dead && o.dead.has(i);
+    if (ghost[i]) {
+      var gh = ghost[i], gr = S * 0.46, fsz = n >= 19 ? (gh.num >= 10 ? 15 : 19) : 24;
+      p.push('<g' + (gh.cur ? ' class="st-pop"' : '') + '><circle cx="' + c3[0] + '" cy="' + c3[1] + '" r="' + gr + '" fill="url(#' + U + (v === BLACK ? 'gb' : 'gw') + ')" opacity=".62" stroke="' + (gh.cur ? '#ff7a59' : (v === BLACK ? '#000' : '#888')) + '" stroke-width="' + (gh.cur ? 3.5 : 1) + '"/>' +
+        '<text x="' + c3[0] + '" y="' + (c3[1] + fsz * 0.36) + '" font-size="' + fsz + '" font-weight="900" text-anchor="middle" fill="' + (v === BLACK ? '#fff' : '#111') + '" font-family="sans-serif">' + gh.num + '</text></g>');
+      continue;
+    }
     var cls = o.newStones && o.newStones.has(i) ? ' class="st-pop"' : '';
     p.push('<g' + cls + ' opacity="' + (dead ? 0.45 : 1) + '"><circle cx="' + (c3[0] + 1.5) + '" cy="' + (c3[1] + 2.5) + '" r="' + (S * 0.46) + '" fill="rgba(0,0,0,.25)"/>' +
       '<circle cx="' + c3[0] + '" cy="' + c3[1] + '" r="' + (S * 0.46) + '" fill="url(#' + U + (v === BLACK ? 'gb' : 'gw') + ')" stroke="' + (v === BLACK ? '#000' : '#999') + '" stroke-width="1"/></g>');
@@ -1915,6 +2262,7 @@ function renderSetup() {
     '<div class="switch-row">被打吃時提醒我（紅色虛線圈）<button class="switch' + (gs.atariAlert ? ' on' : '') + '" data-toggle="atariAlert"></button></div>' +
     '<div class="switch-row">我下到只剩一口氣的地方時，先問我<button class="switch' + (gs.selfAtariWarn ? ' on' : '') + '" data-toggle="selfAtariWarn"></button></div>' +
     '<div class="switch-row">點兩下才下子（觸控預設開啟，避免點錯）<button class="switch' + (gs.tapConfirm ? ' on' : '') + '" data-toggle="tapConfirm"></button></div>' +
+    '<div class="switch-row">🔮「想幾步」時考考我：先猜對方會下哪裡<button class="switch' + (gs.quiz ? ' on' : '') + '" data-toggle="quiz"></button></div>' +
     '<div class="switch-row">顯示座標（A–T、1–19）<button class="switch' + (gs.showCoords ? ' on' : '') + '" data-toggle="showCoords"></button></div></div>' +
     '<div class="btn-row"><button class="btn green" id="start-game" style="font-size:28px;padding:18px 40px">開始下棋！</button></div>';
   $('#start-game').onclick = startGame;
@@ -1951,12 +2299,12 @@ function startGame() {
     '<div class="player" id="pl-w"><span class="stone w"></span><div><b id="nm-w"></b><div class="small" id="cap-w"></div></div></div></div>' +
     '<div class="board-wrap board-19" id="game-board"></div></div><div class="side-col">' +
     '<div class="bubble"><div class="who" id="g-who">🐼</div><div class="txt" id="g-msg"></div><button class="say" id="g-say">🔊</button></div>' +
-    '<div class="btn-row" id="g-btns"><button class="btn orange" id="g-hint">💡 提示</button><button class="btn purple" id="g-undo">↩️ 悔棋</button>' +
+    '<div class="btn-row" id="g-btns"><button class="btn orange" id="g-hint">💡 提示</button><button class="btn think" id="g-think">🔮 想幾步</button><button class="btn purple" id="g-undo">↩️ 悔棋</button>' +
     '<button class="btn gray" id="g-pass">✋ 停一手</button><button class="btn red" id="g-new">🔄 新的一盤</button></div>' +
-    '<div id="g-result"></div></div></div>';
+    '<div id="g-plan"></div><div id="g-result"></div></div></div>';
   gameBoard = new Board($('#game-board'), onGameTap);
   gameBoard.allowHover = true; gameBoard.hoverColor = G.me;
-  $('#g-hint').onclick = gameHint; $('#g-undo').onclick = gameUndo; $('#g-pass').onclick = function () { humanPass(false); };
+  $('#g-hint').onclick = gameHint; $('#g-think').onclick = gameThink; $('#g-undo').onclick = gameUndo; clearPlan(); $('#g-pass').onclick = function () { humanPass(false); };
   $('#g-new').onclick = function () { modal('<h2>要重新開始嗎？</h2><p>這一盤會不見喔。</p><div class="btn-row"><button class="btn green" data-act="newGame">好，重新開始</button><button class="btn gray" data-act="close">繼續下</button></div>'); };
   $('#g-say').onclick = function () { speak($('#g-msg').textContent); };
   show('game', n + '路 · ' + AI.LEVELS[G.level].name);
@@ -1977,7 +2325,8 @@ function drawGame() {
   if (G.hint && G.hint.move >= 0) hint.push(G.hint.move);
   if (G.tapSel >= 0) marks.push({ i: G.tapSel, type: 'preview' });
   var sc = G.scoring ? E.score(pos.b, pos.n, G.dead, g.komi) : null;
-  gameBoard.render({ pos: pos, last: lm && lm.idx >= 0 ? lm.idx : -1, rings: rings, hint: hint, marks: marks, coords: !!store.game.showCoords,
+  if (G.plan && G.plan.view) { var pv = G.plan.view; gameBoard.render({ pos: pv.pos, ghost: pv.ghost, fading: pv.fading, marks: pv.marks, coords: !!store.game.showCoords, last: -1 }); }
+  else gameBoard.render({ pos: pos, last: lm && lm.idx >= 0 ? lm.idx : -1, rings: rings, hint: hint, marks: marks, coords: !!store.game.showCoords,
     newStones: G.newStone >= 0 ? new Set([G.newStone]) : null, fading: G.fading, dead: G.scoring ? G.dead : null, owner: sc ? sc.owner : null });
   G.fading = null; G.newStone = -1;
   gameBoard.allowHover = !G.scoring && !g.over;
@@ -1986,13 +2335,15 @@ function drawGame() {
   $('#cap-b').textContent = '提子 ' + g.caps[BLACK]; $('#cap-w').textContent = '提子 ' + g.caps[WHITE] + '　貼目 ' + g.komi;
   $('#pl-b').classList.toggle('turn', !g.over && pos.toPlay === BLACK); $('#pl-w').classList.toggle('turn', !g.over && pos.toPlay === WHITE);
   var busy = G.thinking || G.scoring;
-  $('#g-hint').disabled = busy || pos.toPlay !== G.me; $('#g-pass').disabled = busy || pos.toPlay !== G.me;
+  $('#g-hint').disabled = busy || pos.toPlay !== G.me; $('#g-think').disabled = busy || pos.toPlay !== G.me || !!(G.plan && G.plan.loading); $('#g-pass').disabled = busy || pos.toPlay !== G.me;
   $('#g-undo').disabled = G.thinking || !g.moves.some(function (m) { return m.color === G.me; });
   if (sc) renderScore(sc); else $('#g-result').innerHTML = '';
 }
 function onGameTap(idx) {
   var g = G.game;
   if (G.scoring) { toggleDead(idx); return; }
+  if (G.plan && G.plan.quizWait) { quizGuess(idx); return; }
+  if (G.plan && G.plan.step > 0) { planGo(0); toast('回到現在的棋盤了，再點一次就可以下棋。'); return; }
   if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
   var r = E.play(g.pos, idx, G.me);
   if (!r.ok) { sfx.bad(); setMsg(ILLEGAL_MSG[r.reason].replace('黑子', '你的子')); return; }
@@ -2008,6 +2359,7 @@ function onGameTap(idx) {
 function humanPlay(idx) {
   var g = G.game, r = g.play(idx);
   if (!r.ok) return;
+  clearPlan();
   G.hint = null; G.newStone = idx;
   G.fading = r.captured.map(function (i) { return { i: i, color: G.ai }; });
   (r.captured.length ? sfx.capture : sfx.place)();
@@ -2021,7 +2373,7 @@ function humanPass(force) {
     modal('<div style="font-size:54px">✋</div><h2>真的要停一手嗎？</h2><p>棋盤上還有很多空的地方喔！<br>兩個人都停一手，這盤棋就結束了。</p><div class="btn-row"><button class="btn green" data-act="close">繼續下</button><button class="btn gray" data-act="forcePass">要停一手</button></div>');
     return;
   }
-  g.play(-1); G.hint = null;
+  g.play(-1); G.hint = null; clearPlan();
   if (g.over) { startScoring(); return; }
   setMsg('你停一手。'); drawGame(); computerTurn();
 }
@@ -2059,7 +2411,7 @@ function computerTurn() {
 }
 function gameHint() {
   var g = G.game; if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
-  G.thinking = true; setMsg('讓我想一想……', '🤔'); drawGame();
+  clearPlan(); G.thinking = true; setMsg('讓我想一想……', '🤔'); drawGame();
   setTimeout(function () {
     var lm = g.lastMove();
     var hnt = AI.hint(g.pos, G.me, { komi: g.komi, moveNo: g.moves.length, oppPassed: !!(lm && lm.idx < 0), time: g.pos.n >= 19 ? 700 : 700 });
@@ -2079,7 +2431,7 @@ function gameUndo() {
     if (m.color === G.me) { undoneMine = true; if (g.pos.toPlay === G.me) break; }
   }
   if (!undoneMine) return;
-  G.hint = null; setMsg('悔棋了，再想一想要下哪裡。'); drawGame();
+  clearPlan(); G.hint = null; setMsg('悔棋了，再想一想要下哪裡。'); drawGame();
   if (g.pos.toPlay === G.ai) computerTurn();
 }
 function startScoring() {
@@ -2118,6 +2470,122 @@ function resumeGame() {
   if (g.pos.toPlay === G.ai) computerTurn();
 }
 
+
+/* ---------------- 想幾步 (multi-step hint) ---------------- */
+var planWorker = null, planSeq = 0;
+function getPlanWorker() {
+  if (planWorker !== null) return planWorker;
+  try {
+    var core = document.getElementById('core-src').textContent;
+    var src = core + '\nself.onmessage=function(e){var d=e.data;try{var pos={n:d.n,b:new Int8Array(d.b),ko:d.ko,toPlay:d.toPlay};self.postMessage({id:d.id,res:self.GoPlan.analyze(pos,d.me,d.opts)});}catch(err){self.postMessage({id:d.id,error:String(err)});}};';
+    planWorker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+    planWorker.onerror = function () { planWorker = false; };
+  } catch (e) { planWorker = false; }
+  return planWorker;
+}
+function analyzePlans(pos, me, opts, cb) {
+  var id = ++planSeq, w = getPlanWorker(), done = false;
+  var fallback = function () { if (done) return; done = true; setTimeout(function () { cb(window.GoPlan.analyze(pos, me, opts), 'main'); }, 30); };
+  if (!w) { fallback(); return; }
+  var to = setTimeout(function () { planWorker = false; fallback(); }, 9000);
+  w.onmessage = function (e) { if (e.data.id !== id || done) return; clearTimeout(to); done = true; if (e.data.error) { planWorker = false; done = false; fallback(); } else cb(e.data.res, 'worker'); };
+  try { w.postMessage({ id: id, n: pos.n, b: Array.prototype.slice.call(pos.b), ko: pos.ko, toPlay: pos.toPlay, me: me, opts: opts }); }
+  catch (e) { clearTimeout(to); fallback(); }
+}
+function clearPlan() { if (G.plan && G.plan.timer) clearInterval(G.plan.timer); G.plan = null; var el = $('#g-plan'); if (el) el.innerHTML = ''; }
+function gameThink() {
+  var g = G.game; if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
+  clearPlan(); G.hint = null;
+  G.plan = { loading: true, step: 0 };
+  $('#g-plan').innerHTML = '<div class="plan-box"><div class="thinking-chip"><span class="spin">🔮</span> 想一想…（往後想好幾步）</div></div>';
+  setMsg('我來往後想幾步……', '🤔'); drawGame();
+  var gameRef = g, moveNo = g.moves.length, t0 = Date.now();
+  analyzePlans(g.pos, G.me, { komi: g.komi, moveNo: moveNo, budget: 1300 }, function (res, where) {
+    if (G.game !== gameRef || gameRef.moves.length !== moveNo || !G.plan) return;
+    G.plan = { res: res, sel: 0, step: 0, ms: Date.now() - t0, where: where, quizDone: {} };
+    window.__lastPlanMs = G.plan.ms; window.__lastPlanWhere = where;
+    if (!res.plans.length) { clearPlan(); setMsg('想不出特別的方案，下你覺得好的地方吧！'); drawGame(); return; }
+    planGo(0); renderPlan();
+    var p0 = res.plans[0];
+    setMsg('🔮 我想了 ' + res.plans.length + ' 個方案。點「方案」看看，再按「下一步 ▶」一步一步看會發生什麼事！', '🐼');
+    maybeSpeak('方案A，' + p0.title + '。' + p0.summary);
+  });
+}
+var VERD = { good: ['好', 'v-good'], ok: ['普通', 'v-ok'], bad: ['危險', 'v-bad'] };
+function renderPlan() {
+  var P = G.plan, el = $('#g-plan'); if (!el) return;
+  if (!P || !P.res) { el.innerHTML = ''; return; }
+  var pl = P.res.plans, cur = pl[P.sel];
+  var cards = pl.map(function (p, i) {
+    var v = VERD[p.verdict];
+    return '<button class="plan-card ' + v[1] + (i === P.sel ? ' sel' : '') + '" data-plan="' + i + '"><div class="pc-h"><b>方案' + p.label + '</b><span class="verdict">' + v[0] + '</span></div><div class="pc-t">' + h(p.title) + '</div><div class="pc-s">' + h(p.summary) + '</div></button>';
+  }).join('');
+  var steps = cur.steps.map(function (st, k) {
+    var col = st.end ? '' : '<span class="dot ' + (st.color === BLACK ? 'b' : 'w') + '"></span>';
+    return '<li class="' + (k + 1 === P.step ? 'cur' : k + 1 < P.step ? 'done' : '') + '" data-step="' + (k + 1) + '">' + col + h(st.text) + '</li>';
+  }).join('');
+  el.innerHTML = '<div class="plan-box"><div class="plan-cards">' + cards + '</div>' +
+    '<div class="plan-line"><div class="pl-title">方案' + cur.label + '：' + h(cur.title) + ' <span class="verdict ' + VERD[cur.verdict][1] + '">' + VERD[cur.verdict][0] + '</span>' + sayBtn('方案' + cur.label + '。' + cur.steps.map(function (x) { return x.text; }).join('。') + '。' + cur.summary) + '</div>' +
+    '<ol class="plan-steps">' + steps + '</ol><div class="plan-sum">📌 結果：' + h(cur.summary) + '</div>' +
+    (P.quizWait ? '<div class="quiz-q">🤔 考考你：你覺得' + (G.ai === WHITE ? '白' : '黑') + '子會下哪裡？點棋盤猜一猜！<button class="btn gray mini" id="quiz-skip">直接看答案</button></div>' : '') +
+    '<div class="btn-row plan-ctl"><button class="btn gray mini" id="pl-now">⏮ 回到現在</button><button class="btn mini" id="pl-prev">◀ 上一步</button><button class="btn green mini" id="pl-next">下一步 ▶</button><button class="btn purple mini" id="pl-play">' + (P.timer ? '⏸ 停' : '⏯ 播放') + '</button></div>' +
+    '<div class="small" style="text-align:center">想了 ' + (P.ms / 1000).toFixed(1) + ' 秒 · 真正的棋盤不會改變</div></div>';
+  el.querySelectorAll('[data-plan]').forEach(function (b) { b.onclick = function () { stopPlay(); G.plan.sel = +b.getAttribute('data-plan'); G.plan.quizWait = false; planGo(0); renderPlan(); var p = G.plan.res.plans[G.plan.sel]; setMsg('方案' + p.label + '（' + VERD[p.verdict][0] + '）：' + p.summary); }; });
+  el.querySelectorAll('[data-step]').forEach(function (li) { li.onclick = function () { stopPlay(); G.plan.quizWait = false; planGo(+li.getAttribute('data-step')); renderPlan(); }; });
+  $('#pl-now').onclick = function () { stopPlay(); G.plan.quizWait = false; planGo(0); renderPlan(); setMsg('回到現在的棋盤。發亮的地方是方案' + cur.label + '的第一步。'); };
+  $('#pl-prev').onclick = function () { stopPlay(); G.plan.quizWait = false; planGo(Math.max(0, G.plan.step - 1)); renderPlan(); };
+  $('#pl-next').onclick = function () { stopPlay(); planNext(); };
+  $('#pl-play').onclick = function () { if (G.plan.timer) { stopPlay(); renderPlan(); return; } if (G.plan.step >= cur.steps.length) planGo(0); G.plan.timer = setInterval(function () { if (!G.plan) return; if (!planNext(true)) stopPlay(); renderPlan(); }, 1300); renderPlan(); };
+  var sk = $('#quiz-skip'); if (sk) sk.onclick = function () { G.plan.quizWait = false; G.plan.quizDone[G.plan.sel] = true; planGo(G.plan.step + 1); renderPlan(); };
+}
+function stopPlay() { if (G.plan && G.plan.timer) { clearInterval(G.plan.timer); G.plan.timer = null; } }
+function planNext(auto) {
+  var P = G.plan, cur = P.res.plans[P.sel];
+  if (P.step >= cur.steps.length) return false;
+  var nextStep = P.step + 1;
+  if (store.game.quiz && !P.quizDone[P.sel] && cur.quizStep >= 0 && nextStep === cur.quizStep + 1) {
+    stopPlay(); P.quizWait = true; setMsg('🤔 考考你：你覺得' + (G.ai === WHITE ? '白' : '黑') + '子會下哪裡？點棋盤猜一猜！', '🐼'); renderPlan(); drawGame(); return false;
+  }
+  planGo(nextStep); if (!auto) renderPlan(); return true;
+}
+function quizGuess(idx) {
+  var P = G.plan, cur = P.res.plans[P.sel], st = cur.steps[cur.quizStep];
+  if (!P.view || P.view.pos.b[idx]) { toast('要點空的交叉點喔！'); return; }
+  P.quizWait = false; P.quizDone[P.sel] = true;
+  var n = G.game.n, d = Math.max(Math.abs(((idx / n) | 0) - ((st.idx / n) | 0)), Math.abs(idx % n - st.idx % n));
+  planGo(cur.quizStep + 1, idx);
+  var who = (G.ai === WHITE ? '白' : '黑') + '子';
+  if (idx === st.idx) { sfx.good(); confetti(16); setMsg('🎉 猜對了！你會替對方想，好厲害！' + st.text.replace(/^\d+\. /, ''), '😄'); }
+  else if (d <= 1) { sfx.place(); setMsg('好接近！' + who + '其實下在 ' + (cur.quizStep + 1) + ' 號：' + st.text.replace(/^\d+\. /, ''), '🐼'); }
+  else { sfx.place(); setMsg('電腦下在 ' + (cur.quizStep + 1) + ' 號（紫色問號是你猜的）：' + st.text.replace(/^\d+\. /, '') + '。對方也會想辦法喔！', '🐼'); }
+  renderPlan();
+}
+/* compute the preview board after k steps of the selected plan (k=0: the present) */
+function planGo(k, guessIdx) {
+  var P = G.plan; if (!P || !P.res) return;
+  var cur = P.res.plans[P.sel], pos = G.game.pos;
+  P.step = k;
+  if (k === 0) { P.view = null; G.hint = { move: cur.first }; drawGame(); return; }
+  G.hint = null;
+  var isEnd = cur.steps[k - 1] && cur.steps[k - 1].end;
+  var moves = isEnd ? cur.allMoves : cur.allMoves.slice(0, k);
+  var ghost = [], fading = [], p = pos;
+  for (var j = 0; j < moves.length; j++) {
+    var r = E.play(p, moves[j].idx, moves[j].color); if (!r.ok) break;
+    // stones captured in the line disappear; their ghost labels too
+    ghost = ghost.filter(function (gh) { return r.captured.indexOf(gh.i) < 0; });
+    ghost.push({ i: moves[j].idx, num: j + 1, cur: j === moves.length - 1 });
+    if (j === moves.length - 1) fading = r.captured.map(function (i) { return { i: i, color: p.b[i] }; });
+    p = r.pos;
+  }
+  var marks = guessIdx != null && guessIdx !== moves[moves.length - 1].idx ? [{ i: guessIdx, type: 'guess' }] : [];
+  P.view = { pos: p, ghost: ghost, fading: fading, marks: marks };
+  var st = cur.steps[k - 1];
+  if (!P.quizWait) setMsg(st.text + (k === cur.steps.length && !isEnd ? '　📌 ' + cur.summary : ''), st.color === G.me ? '🙂' : '🤖');
+  if (fading.length) sfx.capture(); else sfx.place();
+  drawGame();
+}
+
 /* ---------------- parents ---------------- */
 var gateAns = 0;
 function renderParentGate() {
@@ -2131,12 +2599,14 @@ function renderParent() {
   var sw = function (key, label) { return '<div class="switch-row">' + label + '<button class="switch' + (store[key] ? ' on' : '') + '" data-ptoggle="' + key + '"></button></div>'; };
   $('#parent-body').innerHTML =
     '<div class="parent-box"><h3>⚙️ 設定</h3>' + sw('unlockAll', '全部關卡解鎖（不用依序過關）') + sw('sound', '音效') + sw('autoSpeak', '自動朗讀題目（需要裝置有中文語音）') +
+    '<div class="switch-row">🔮 想幾步提示的「考考你」（先猜對方會下哪裡）<button class="switch' + (store.game.quiz ? ' on' : '') + '" data-toggle="quiz"></button></div>' +
     '<div class="btn-row" style="justify-content:flex-start"><button class="btn red" id="reset-prog">重設學習進度</button></div></div>' +
     '<div class="parent-box"><h3>📊 學習進度</h3>' + LESSONS.map(function (Ls, i) { return (i + 1) + '. ' + h(Ls.title) + '：' + (store.stars[Ls.id] ? '★'.repeat(store.stars[Ls.id]) : '—'); }).join('<br>') + '</div>' +
     '<div class="parent-box"><h3>📖 給家長的說明</h3>' +
     '<p>・共 ' + LESSONS.length + ' 個關卡，從規則、氣、提子一路到打劫、數地和布局。每題都會立即判斷對錯；按一次「提示」給文字提示，再按一次會直接標出答案（會影響星星數）。</p>' +
     '<p>・跟電腦下棋固定用完整的 <b>19 路</b> 棋盤（和上課一樣），使用<b>數子法（中國／應氏規則）</b>：棋子＋圍住的空點＝分數，白棋加貼目（預設 6.5）。禁止自殺（禁著點）、單劫不能立刻提回。雙方連續停一手即終局，程式會估計死子（可點選修正）。</p>' +
     '<p>・電腦等級：入門很好贏；初級會吃子和逃跑；中級／高級會想一想，大約 1～2 秒一手（19 路會自動縮短思考）。</p>' +
+    '<p>・「🔮 想幾步」會往後想 3～5 手（我→對方→我…），列出 2～3 個方案（好／普通／危險），每一步都用棋盤上的編號棋子示範，可以上一步、下一步、自動播放。對方的回應是電腦真正會下的（征子、枷吃、打吃、逃跑用戰術計算，其他用電腦評估），說明文字都是照實際下出來的結果產生的。開啟「考考你」時，會先讓孩子猜對方會下哪裡。</p>' +
     '<p>・「提示」會標出建議的位置並用簡單的話說明原因（提子、逃跑、雙打吃、征子、補強、佔角、做眼……）。</p>' +
     '<p>・進度存在這台裝置的瀏覽器裡（localStorage），清除瀏覽器資料會一起清掉。</p></div>';
   $('#reset-prog').onclick = function () { if (confirm('確定要把所有星星和進度清除嗎？')) { store.stars = {}; save(); toast('已重設'); renderParent(); } };
@@ -2160,7 +2630,7 @@ $('#go-parent').onclick = renderParentGate;
 $('#overlay').addEventListener('click', function (ev) { if (ev.target.id === 'overlay') closeModal(); });
 updateSoundBtn();
 renderHome();
-window.__go = { store: store, openLesson: openLesson, renderMap: renderMap, renderSetup: renderSetup, startGame: startGame, G: G, get L() { return L; }, onPuzzleTap: function (i) { onPuzzleTap(i); }, onGameTap: function (i) { onGameTap(i); }, gameHint: gameHint, startScoring: startScoring, renderPuzzle: renderPuzzle, nextPuzzle: nextPuzzle };
+window.__go = { store: store, openLesson: openLesson, renderMap: renderMap, renderSetup: renderSetup, startGame: startGame, G: G, get L() { return L; }, onPuzzleTap: function (i) { onPuzzleTap(i); }, onGameTap: function (i) { onGameTap(i); }, gameHint: gameHint, gameThink: gameThink, drawGame: drawGame, planGo: function (k) { planGo(k); renderPlan(); }, renderPlan: renderPlan, startScoring: startScoring, renderPuzzle: renderPuzzle, nextPuzzle: nextPuzzle };
 })();
 
 </script>
