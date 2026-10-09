@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fff7e6">
+<title>小棋士圍棋教室</title>
+<style>
+:root{--bg:#fff7e6;--ink:#3b2a1a;--pri:#ff7a59;--pri2:#ffb347;--blue:#4aa8ff;--green:#3cc47c;--purple:#a77bff;--card:#fff;--wood:#e9b96e;--wood2:#dca65a;--shadow:0 4px 0 rgba(0,0,0,.15);}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",system-ui,sans-serif;}
+body{min-height:100vh;background:radial-gradient(circle at 10% 10%,#ffe9c7 0,transparent 40%),radial-gradient(circle at 90% 20%,#d9f2ff 0,transparent 35%),radial-gradient(circle at 50% 100%,#e6ffe9 0,transparent 40%),var(--bg);}
+button{font-family:inherit;cursor:pointer;border:none;touch-action:manipulation}
+.topbar{display:flex;align-items:center;gap:8px;padding:8px 12px;position:sticky;top:0;z-index:5;background:rgba(255,247,230,.92);backdrop-filter:blur(4px)}
+.topbar .title{flex:1;font-size:22px;font-weight:800;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:48px;height:48px;border-radius:14px;background:#fff;font-size:24px;box-shadow:var(--shadow)}
+.icon-btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.screen{display:none;padding:8px 14px 40px;max-width:980px;margin:0 auto}
+.screen.active{display:block}
+.big-title{font-size:40px;font-weight:900;text-align:center;margin:18px 0 4px;letter-spacing:2px}
+.big-title span{color:var(--pri)}
+.sub{text-align:center;font-size:20px;margin:0 0 18px;opacity:.85}
+.mascot{font-size:72px;text-align:center;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.home-btns{display:grid;gap:16px;max-width:520px;margin:10px auto}
+.home-btn{font-size:28px;font-weight:800;padding:22px;border-radius:24px;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.18);text-align:left;display:flex;align-items:center;gap:14px}
+.home-btn small{display:block;font-size:16px;font-weight:600;opacity:.95}
+.home-btn .e{font-size:44px}
+.home-btn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.c1{background:linear-gradient(135deg,#ff8a65,#ff6f91)}.c2{background:linear-gradient(135deg,#4aa8ff,#6a7dff)}.c3{background:linear-gradient(135deg,#9e9e9e,#7a8a99)}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.lesson-card{background:#fff;border-radius:22px;padding:14px 10px;text-align:center;box-shadow:var(--shadow);position:relative;border:3px solid transparent;min-height:150px}
+.lesson-card .no{position:absolute;left:10px;top:8px;font-weight:900;color:#fff;background:var(--pri);border-radius:12px;padding:2px 9px;font-size:16px}
+.lesson-card .ic{font-size:44px}
+.lesson-card .nm{font-size:21px;font-weight:800;margin-top:4px}
+.lesson-card .zy{font-size:13px;opacity:.7;margin-top:2px}
+.lesson-card .st{font-size:22px;color:#ffb300;margin-top:4px;letter-spacing:2px}
+.lesson-card.locked{opacity:.5;filter:grayscale(.8)}
+.lesson-card.locked::after{content:"🔒";position:absolute;right:10px;top:6px;font-size:26px}
+.lesson-card.next{border-color:var(--pri);animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 6px rgba(255,122,89,.25),var(--shadow)}}
+.banner{background:#fff;border-radius:20px;padding:12px 16px;margin:6px 0 14px;box-shadow:var(--shadow);font-size:19px;text-align:center}
+.bubble{position:relative;background:#fff;border-radius:22px;padding:14px 18px;box-shadow:var(--shadow);font-size:22px;line-height:1.55;margin:8px 0 12px;display:flex;gap:12px;align-items:flex-start}
+.bubble .who{font-size:40px;line-height:1}
+.bubble .txt{flex:1}
+.bubble .say{flex:none;width:44px;height:44px;border-radius:50%;background:#eef6ff;font-size:22px}
+.intro-lines p{margin:4px 0}
+.lesson-layout{display:grid;grid-template-columns:1fr;gap:10px;align-items:start}
+@media (min-width:900px) and (orientation:landscape){.lesson-layout{grid-template-columns:minmax(380px,560px) 1fr}.game-layout{grid-template-columns:minmax(420px,620px) 1fr!important}}
+.board-wrap{width:min(94vw,60vh,600px);margin:0 auto;position:relative;touch-action:none;user-select:none;-webkit-user-select:none}
+.board-wrap svg{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 0 rgba(0,0,0,.18))}
+.dots{display:flex;gap:8px;justify-content:center;margin:4px 0}
+.dots i{width:16px;height:16px;border-radius:50%;background:#e0d4c0;display:block}
+.dots i.done{background:var(--green)}.dots i.cur{background:var(--pri);transform:scale(1.25)}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px 0}
+.btn{font-size:22px;font-weight:800;padding:14px 20px;border-radius:18px;color:#fff;background:var(--blue);box-shadow:var(--shadow);min-width:110px}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.btn.orange{background:var(--pri2)}.btn.green{background:var(--green)}.btn.red{background:#ff6b6b}.btn.purple{background:var(--purple)}.btn.gray{background:#9aa5b1}
+.btn:disabled{opacity:.45}
+.choices{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:10px 0}
+.choice{font-size:24px;font-weight:800;padding:18px 12px;border-radius:18px;background:#fff;color:var(--ink);box-shadow:var(--shadow);border:3px solid #ffd7a8}
+.choice.right{background:#d8ffe6;border-color:var(--green)}
+.choice.wrong{background:#ffe0e0;border-color:#ff6b6b;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.feedback{min-height:46px;text-align:center;font-size:24px;font-weight:800;margin:6px 0}
+.feedback.good{color:#1f9d55}.feedback.bad{color:#e04848}.feedback.info{color:#3b6fd1}
+.setup-group{background:#fff;border-radius:20px;padding:12px 14px;margin:10px 0;box-shadow:var(--shadow)}
+.setup-group h3{margin:0 0 8px;font-size:21px}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{font-size:20px;font-weight:800;padding:12px 16px;border-radius:14px;background:#f2ece2;color:var(--ink);min-width:84px}
+.seg button.on{background:var(--pri);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.seg button:disabled{opacity:.4}
+.seg-note{font-size:15px;opacity:.75;margin-top:6px}
+.players{display:flex;gap:10px;justify-content:center;align-items:stretch;margin:6px 0}
+.player{flex:1;max-width:260px;background:#fff;border-radius:18px;padding:8px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;font-size:19px;border:3px solid transparent}
+.player.turn{border-color:var(--pri)}
+.player .stone{width:30px;height:30px;border-radius:50%;flex:none}
+.stone.b{background:radial-gradient(circle at 35% 30%,#666,#000 70%)}.stone.w{background:radial-gradient(circle at 35% 30%,#fff,#cfcfcf 80%);border:1px solid #aaa}
+.player b{font-size:20px}
+.game-layout{display:grid;grid-template-columns:1fr;gap:10px;align-items:start}
+.result{background:#fff;border-radius:22px;padding:14px 18px;box-shadow:var(--shadow);font-size:20px;line-height:1.6;text-align:center}
+.result .big{font-size:30px;font-weight:900;margin:4px 0}
+.overlay{position:fixed;inset:0;background:rgba(40,25,10,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:26px;padding:22px;max-width:480px;width:100%;text-align:center;box-shadow:0 10px 0 rgba(0,0,0,.2);animation:popin .3s}
+.modal h2{margin:4px 0 8px;font-size:30px}
+.modal p{font-size:21px;line-height:1.5;margin:8px 0}
+.modal .stars{font-size:54px;color:#ffb300;letter-spacing:6px}
+@keyframes popin{from{transform:scale(.6);opacity:0}}
+.confetti{position:fixed;top:-40px;z-index:60;pointer-events:none;font-size:28px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.parent-box{background:#fff;border-radius:20px;padding:16px;margin:10px 0;box-shadow:var(--shadow);font-size:18px;line-height:1.6}
+.parent-box h3{margin:0 0 6px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed #eee;font-size:19px}
+.switch{width:64px;height:36px;border-radius:18px;background:#ccc;position:relative;flex:none}
+.switch::after{content:"";position:absolute;width:28px;height:28px;border-radius:50%;background:#fff;top:4px;left:4px;transition:.2s}
+.switch.on{background:var(--green)}.switch.on::after{left:32px}
+input.gate{font-size:26px;width:120px;padding:8px;border-radius:12px;border:2px solid #ddd;text-align:center}
+/* board svg pieces */
+.st-pop{animation:stonepop .22s ease-out;transform-box:fill-box;transform-origin:center}
+@keyframes stonepop{from{transform:scale(.4);opacity:.3}}
+.st-fade{animation:fadeout .5s forwards}
+@keyframes fadeout{to{opacity:0;transform:scale(1.4)}}
+.hint-ring{animation:pulse 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{50%{transform:scale(1.25);opacity:.55}}
+.wrong-x{animation:fadeout 1s .3s forwards}
+.thinking{display:inline-block;animation:bob 1s infinite}
+.small{font-size:15px;opacity:.75}
+.board-19{width:min(96vw,min(92vh,920px));max-width:100%}
+.game-19 .board-col{width:100%}
+@media (min-width:1000px) and (orientation:landscape){
+  .game-19{grid-template-columns:minmax(520px,min(72vh,820px)) minmax(280px,1fr)!important}
+  .board-19{width:100%}
+}
+.board-19 svg{touch-action:none}
+
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#3b2a1a;color:#fff;padding:12px 22px;border-radius:30px;font-size:20px;opacity:0;transition:opacity .3s;z-index:70;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="icon-btn" id="btn-home" title="回上一頁">🏠</button>
+  <div class="title" id="top-title">小棋士圍棋教室</div>
+  <button class="icon-btn" id="btn-sound" title="音效">🔊</button>
+</div>
+
+<section class="screen active" id="scr-home">
+  <div class="mascot">🐼</div>
+  <div class="big-title">小棋士<span>圍棋</span>教室</div>
+  <p class="sub">熊貓老師陪你一步一步學圍棋 ⚫⚪</p>
+  <div class="home-btns">
+    <button class="home-btn c1" id="go-lessons"><span class="e">📚</span><span>學習關卡<small id="home-progress"></small></span></button>
+    <button class="home-btn c2" id="go-game"><span class="e">🤖</span><span>跟電腦下棋<small>可以按「提示」問熊貓老師</small></span></button>
+    <button class="home-btn c3" id="go-parent"><span class="e">⚙️</span><span>家長設定<small>解鎖關卡、音效、說明</small></span></button>
+  </div>
+</section>
+
+<section class="screen" id="scr-map">
+  <div class="banner" id="map-banner"></div>
+  <div class="map" id="map"></div>
+</section>
+
+<section class="screen" id="scr-lesson"><div id="lesson-body"></div></section>
+<section class="screen" id="scr-setup"><div id="setup-body"></div></section>
+<section class="screen" id="scr-game"><div id="game-body"></div></section>
+<section class="screen" id="scr-parent"><div id="parent-body"></div></section>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+<script>
+/* ---- engine.js ---- */
+/* 圍棋規則引擎 Go rules engine (no dependencies). Works in browser and Node. */
+(function (root) {
+'use strict';
+var EMPTY = 0, BLACK = 1, WHITE = 2;
+function opp(c) { return 3 - c; }
+
+var NBC = {}, DGC = {};
+function nbrs(n) {
+  if (NBC[n]) return NBC[n];
+  var a = [];
+  for (var i = 0; i < n * n; i++) {
+    var r = (i / n) | 0, c = i % n, l = [];
+    if (r > 0) l.push(i - n); if (r < n - 1) l.push(i + n);
+    if (c > 0) l.push(i - 1); if (c < n - 1) l.push(i + 1);
+    a.push(l);
+  }
+  return (NBC[n] = a);
+}
+function diags(n) {
+  if (DGC[n]) return DGC[n];
+  var a = [];
+  for (var i = 0; i < n * n; i++) {
+    var r = (i / n) | 0, c = i % n, l = [];
+    if (r > 0 && c > 0) l.push(i - n - 1); if (r > 0 && c < n - 1) l.push(i - n + 1);
+    if (r < n - 1 && c > 0) l.push(i + n - 1); if (r < n - 1 && c < n - 1) l.push(i + n + 1);
+    a.push(l);
+  }
+  return (DGC[n] = a);
+}
+
+/* group containing idx: {color, stones:[], libs:[]} */
+function group(b, n, idx) {
+  var color = b[idx], NB = nbrs(n);
+  var seen = new Uint8Array(n * n), stones = [idx], libs = [];
+  seen[idx] = 1;
+  for (var k = 0; k < stones.length; k++) {
+    var s = stones[k], ns = NB[s];
+    for (var j = 0; j < ns.length; j++) {
+      var p = ns[j];
+      if (seen[p]) continue;
+      if (b[p] === color) { seen[p] = 1; stones.push(p); }
+      else if (b[p] === EMPTY) { seen[p] = 2; libs.push(p); }
+    }
+  }
+  return { color: color, stones: stones, libs: libs };
+}
+
+/* all groups on board */
+function allGroups(b, n) {
+  var seen = new Uint8Array(n * n), out = [];
+  for (var i = 0; i < n * n; i++) {
+    if (b[i] === EMPTY || seen[i]) continue;
+    var g = group(b, n, i);
+    for (var k = 0; k < g.stones.length; k++) seen[g.stones[k]] = 1;
+    out.push(g);
+  }
+  return out;
+}
+
+function newPos(n) { return { n: n, b: new Int8Array(n * n), ko: -1, toPlay: BLACK }; }
+function clonePos(p) { return { n: p.n, b: p.b.slice(), ko: p.ko, toPlay: p.toPlay }; }
+
+/* play a move. idx = -1 means pass. Returns {ok, pos, captured, reason} */
+function play(pos, idx, color) {
+  if (color == null) color = pos.toPlay;
+  var n = pos.n;
+  if (idx < 0) return { ok: true, pos: { n: n, b: pos.b.slice(), ko: -1, toPlay: opp(color) }, captured: [] };
+  if (pos.b[idx] !== EMPTY) return { ok: false, reason: 'occupied' };
+  if (idx === pos.ko && color === pos.toPlay) return { ok: false, reason: 'ko' };
+  var b = pos.b.slice(), o = opp(color), captured = [], NB = nbrs(n)[idx];
+  b[idx] = color;
+  for (var j = 0; j < NB.length; j++) {
+    var p = NB[j];
+    if (b[p] === o) {
+      var g = group(b, n, p);
+      if (g.libs.length === 0) for (var k = 0; k < g.stones.length; k++) { b[g.stones[k]] = EMPTY; captured.push(g.stones[k]); }
+    }
+  }
+  var my = group(b, n, idx);
+  if (my.libs.length === 0) return { ok: false, reason: 'suicide' };
+  var ko = -1;
+  if (captured.length === 1 && my.stones.length === 1 && my.libs.length === 1) ko = captured[0];
+  return { ok: true, pos: { n: n, b: b, ko: ko, toPlay: o }, captured: captured };
+}
+function isLegal(pos, idx, color) { return play(pos, idx, color).ok; }
+function legalMoves(pos, color) {
+  var out = [];
+  for (var i = 0; i < pos.n * pos.n; i++) if (pos.b[i] === EMPTY && isLegal(pos, i, color)) out.push(i);
+  return out;
+}
+
+/* ---------- eyes ---------- */
+function isEyeShape(b, n, idx, color) {
+  if (b[idx] !== EMPTY) return false;
+  var NB = nbrs(n)[idx];
+  for (var j = 0; j < NB.length; j++) if (b[NB[j]] !== color) return false;
+  return true;
+}
+/* true eye: all orthogonal neighbours are own stones; diagonal rule (edge: 0 enemy diagonals, centre: at most 1) */
+function isTrueEye(b, n, idx, color) {
+  if (!isEyeShape(b, n, idx, color)) return false;
+  var D = diags(n)[idx], bad = 0;
+  for (var j = 0; j < D.length; j++) if (b[D[j]] === opp(color)) bad++;
+  return D.length < 4 ? bad === 0 : bad <= 1;
+}
+function isFalseEye(b, n, idx, color) { return isEyeShape(b, n, idx, color) && !isTrueEye(b, n, idx, color); }
+
+/* number of true eyes belonging to the group at idx (chains linked by shared true eyes count together) */
+function eyesOf(b, n, idx) {
+  var color = b[idx]; if (color === EMPTY) return 0;
+  var NB = nbrs(n), chains = [group(b, n, idx)], inChain = new Uint8Array(n * n), eyes = new Set();
+  chains[0].stones.forEach(function (s) { inChain[s] = 1; });
+  for (var k = 0; k < chains.length; k++) {
+    var libs = chains[k].libs;
+    for (var j = 0; j < libs.length; j++) {
+      var e = libs[j];
+      if (eyes.has(e) || !isTrueEye(b, n, e, color)) continue;
+      eyes.add(e);
+      NB[e].forEach(function (s) { if (!inChain[s]) { var g = group(b, n, s); g.stones.forEach(function (t) { inChain[t] = 1; }); chains.push(g); } });
+    }
+  }
+  return eyes.size;
+}
+
+/* ---------- tactical reading (ladders / nets / ataris) ----------
+   canCapture(pos, t, attackerToMove): can the attacker capture the group at t?
+   Defender with >=3 liberties is treated as escaped. */
+function passPos(pos) { return { n: pos.n, b: pos.b, ko: -1, toPlay: opp(pos.toPlay) }; }
+function canCapture(pos, t, attackerToMove, depth, opt) {
+  if (depth == null) depth = 60;
+  if (!opt) opt = { esc: 3, nodes: 0, max: 20000 };
+  if (opt.memo === undefined) opt.memo = new Map();
+  var b = pos.b, n = pos.n, tc = b[t];
+  if (tc === EMPTY) return true;
+  if (++opt.nodes > opt.max) return false;
+  var ac = opp(tc), g = group(b, n, t), L = g.libs.length;
+  var key = (attackerToMove ? 'a' : 'd') + depth + ':' + Array.prototype.join.call(b, '');
+  if (opt.memo.has(key)) return opt.memo.get(key);
+  var res;
+  if (attackerToMove) {
+    var ap = pos.toPlay === ac ? pos : passPos(pos);
+    if (L === 1) res = isLegal(ap, g.libs[0], ac);
+    else if (L >= opt.esc || depth <= 0) res = false;
+    else {
+      res = false;
+      for (var i = 0; i < L && !res; i++) {
+        var r = play(ap, g.libs[i], ac);
+        if (r.ok && canCapture(r.pos, t, false, depth - 1, opt)) res = true;
+      }
+    }
+  } else {
+    var dp = pos.toPlay === tc ? pos : passPos(pos);
+    if (L >= opt.esc) res = false;
+    else if (depth <= 0) res = L <= 1;
+    else {
+      res = true;
+      var cands = defenderMoves(dp, g);
+      for (var k = 0; k < cands.length && res; k++) {
+        var r2 = play(dp, cands[k], tc);
+        if (r2.ok && !canCapture(r2.pos, t, true, depth - 1, opt)) res = false;
+      }
+      if (res && L >= 2 && !canCapture(passPos(dp), t, true, depth - 1, opt)) res = false;
+    }
+  }
+  if (opt.nodes <= opt.max) opt.memo.set(key, res);
+  return res;
+}
+function defenderMoves(pos, g) {
+  var b = pos.b, n = pos.n, NB = nbrs(n), set = new Set(g.libs), done = new Uint8Array(n * n);
+  for (var k = 0; k < g.stones.length; k++) {
+    NB[g.stones[k]].forEach(function (p) {
+      if (b[p] === opp(g.color) && !done[p]) {
+        var eg = group(b, n, p); eg.stones.forEach(function (s) { done[s] = 1; });
+        if (eg.libs.length === 1) set.add(eg.libs[0]);
+        else if (eg.libs.length === 2 && g.libs.length >= 2) { set.add(eg.libs[0]); set.add(eg.libs[1]); }
+      }
+    });
+  }
+  return Array.from(set);
+}
+/* best resisting move for the defender (used to animate the computer's reply in puzzles) */
+function bestDefence(pos, t) {
+  var tc = pos.b[t]; if (tc === EMPTY) return -1;
+  var g = group(pos.b, pos.n, t), cands = defenderMoves(pos, g), best = -1, bestL = -1;
+  for (var k = 0; k < cands.length; k++) {
+    var r = play(pos, cands[k], tc); if (!r.ok) continue;
+    if (r.pos.b[t] === EMPTY) continue;
+    var L = group(r.pos.b, pos.n, t).libs.length + r.captured.length * 2;
+    if (L > bestL) { bestL = L; best = cands[k]; }
+  }
+  return best;
+}
+
+/* ---------- small life & death search (moves restricted to a region) ---------- */
+function lifeSearch(pos, region, t, depth, memo, passes) {
+  memo = memo || new Map(); passes = passes || 0;
+  var tc = pos.b[t];
+  if (tc === EMPTY) return false;
+  if (eyesOf(pos.b, pos.n, t) >= 2) return true;
+  if (depth <= 0 || passes >= 2) return false;
+  var key = pos.toPlay + ':' + passes + ':' + depth + ':' + Array.prototype.join.call(pos.b, '');
+  if (memo.has(key)) return memo.get(key);
+  var defender = pos.toPlay === tc, res;
+  var moves = region.filter(function (p) { return pos.b[p] === EMPTY; });
+  if (defender) {
+    res = false;
+    for (var i = 0; i < moves.length && !res; i++) { var r = play(pos, moves[i]); if (r.ok && lifeSearch(r.pos, region, t, depth - 1, memo, 0)) res = true; }
+    if (!res) res = lifeSearch(play(pos, -1).pos, region, t, depth - 1, memo, passes + 1);
+  } else {
+    res = true;
+    for (var j = 0; j < moves.length && res; j++) {
+      var r2 = play(pos, moves[j]);
+      if (r2.ok && !lifeSearch(r2.pos, region, t, depth - 1, memo, 0)) res = false;
+    }
+    if (res) res = lifeSearch(play(pos, -1).pos, region, t, depth - 1, memo, passes + 1);
+  }
+  memo.set(key, res);
+  return res;
+}
+
+/* ---------- scoring (area scoring / 數子) ---------- */
+function score(b, n, dead, komi) {
+  dead = dead || new Set(); komi = komi || 0;
+  var bb = b.slice();
+  dead.forEach(function (i) { bb[i] = EMPTY; });
+  var owner = new Int8Array(n * n), NB = nbrs(n), seen = new Uint8Array(n * n);
+  var stonesB = 0, stonesW = 0, terrB = 0, terrW = 0, dame = 0;
+  for (var i = 0; i < n * n; i++) {
+    if (bb[i] === BLACK) { stonesB++; owner[i] = BLACK; }
+    else if (bb[i] === WHITE) { stonesW++; owner[i] = WHITE; }
+  }
+  for (var s = 0; s < n * n; s++) {
+    if (bb[s] !== EMPTY || seen[s]) continue;
+    var region = [s], touch = 0; seen[s] = 1;
+    for (var k = 0; k < region.length; k++) {
+      NB[region[k]].forEach(function (p) {
+        if (bb[p] === EMPTY) { if (!seen[p]) { seen[p] = 1; region.push(p); } }
+        else touch |= bb[p];
+      });
+    }
+    var who = touch === BLACK ? BLACK : touch === WHITE ? WHITE : 0;
+    region.forEach(function (p) { owner[p] = who; });
+    if (who === BLACK) terrB += region.length; else if (who === WHITE) terrW += region.length; else dame += region.length;
+  }
+  var black = stonesB + terrB, white = stonesW + terrW + komi;
+  return { black: black, white: white, stonesB: stonesB, stonesW: stonesW, terrB: terrB, terrW: terrW, dame: dame,
+           komi: komi, owner: owner, winner: black > white ? BLACK : white > black ? WHITE : 0, diff: Math.abs(black - white) };
+}
+
+/* ---------- helpers ---------- */
+function fromRows(rows) {
+  var n = rows.length, pos = newPos(n), marks = [], targets = [];
+  for (var r = 0; r < n; r++) {
+    var line = rows[r].replace(/\s+/g, '');
+    if (line.length !== n) throw new Error('bad row ' + r + ': ' + rows[r]);
+    for (var c = 0; c < n; c++) {
+      var ch = line[c], i = r * n + c;
+      if (ch === 'X' || ch === 'x') pos.b[i] = BLACK;
+      else if (ch === 'O' || ch === 'o') pos.b[i] = WHITE;
+      if (ch === 'x' || ch === 'o') targets.push(i);
+      if (ch === '*') marks.push(i);
+    }
+  }
+  return { pos: pos, marks: marks, targets: targets };
+}
+function toRows(pos) {
+  var out = [];
+  for (var r = 0; r < pos.n; r++) {
+    var s = '';
+    for (var c = 0; c < pos.n; c++) { var v = pos.b[r * pos.n + c]; s += v === BLACK ? 'X' : v === WHITE ? 'O' : '.'; }
+    out.push(s);
+  }
+  return out;
+}
+function starPoints(n) {
+  var pts = [];
+  if (n === 9) pts = [[2, 2], [2, 6], [6, 2], [6, 6], [4, 4]];
+  else if (n === 13) pts = [[3, 3], [3, 9], [9, 3], [9, 9], [6, 6]];
+  else if (n === 19) { [3, 9, 15].forEach(function (r) { [3, 9, 15].forEach(function (c) { pts.push([r, c]); }); }); }
+  else if (n === 7) pts = [[2, 2], [2, 4], [4, 2], [4, 4], [3, 3]];
+  else if (n % 2 === 1 && n >= 5) pts = [[(n - 1) / 2, (n - 1) / 2]];
+  return pts.map(function (p) { return p[0] * n + p[1]; });
+}
+function handicapPoints(n, h) {
+  var a = n >= 13 ? 3 : 2, z = n - 1 - a, m = (n - 1) / 2;
+  var all = [[z, a], [a, z], [z, z], [a, a], [m, m], [m, a], [m, z], [a, m], [z, m]];
+  var pts = all.slice(0, Math.min(h, 4));
+  if (h === 5) pts.push(all[4]);
+  if (h >= 6) { pts.push(all[5], all[6]); }
+  if (h === 7) pts.push(all[4]);
+  if (h >= 8) pts.push(all[7], all[8]);
+  if (h === 9) pts.push(all[4]);
+  return pts.map(function (p) { return p[0] * n + p[1]; });
+}
+
+/* ---------- Game with history (undo) ---------- */
+function Game(n, komi) {
+  this.n = n; this.komi = komi == null ? 7 : komi;
+  this.pos = newPos(n); this.caps = [0, 0, 0];
+  this.history = []; this.moves = []; this.passes = 0; this.over = false;
+}
+Game.prototype.snapshot = function () {
+  return { pos: clonePos(this.pos), caps: this.caps.slice(), passes: this.passes, over: this.over, movesLen: this.moves.length };
+};
+Game.prototype.play = function (idx) {
+  if (this.over) return { ok: false, reason: 'over' };
+  var color = this.pos.toPlay, r = play(this.pos, idx, color);
+  if (!r.ok) return r;
+  this.history.push(this.snapshot());
+  this.pos = r.pos; this.caps[color] += r.captured.length;
+  this.moves.push({ idx: idx, color: color, captured: r.captured });
+  this.passes = idx < 0 ? this.passes + 1 : 0;
+  if (this.passes >= 2) this.over = true;
+  return { ok: true, captured: r.captured, color: color, over: this.over };
+};
+Game.prototype.undo = function () {
+  var s = this.history.pop(); if (!s) return false;
+  this.pos = s.pos; this.caps = s.caps; this.passes = s.passes; this.over = s.over; this.moves.length = s.movesLen;
+  return true;
+};
+Game.prototype.lastMove = function () { return this.moves.length ? this.moves[this.moves.length - 1] : null; };
+
+var API = { EMPTY: EMPTY, BLACK: BLACK, WHITE: WHITE, opp: opp, nbrs: nbrs, diags: diags, group: group, allGroups: allGroups,
+  newPos: newPos, clonePos: clonePos, play: play, isLegal: isLegal, legalMoves: legalMoves, isEyeShape: isEyeShape,
+  isTrueEye: isTrueEye, isFalseEye: isFalseEye, eyesOf: eyesOf, canCapture: canCapture, bestDefence: bestDefence,
+  defenderMoves: defenderMoves, lifeSearch: lifeSearch, score: score, fromRows: fromRows, toRows: toRows,
+  starPoints: starPoints, handicapPoints: handicapPoints, Game: Game, passPos: passPos };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.GoEngine = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ---- ai.js ---- */
+/* 電腦棋手與提示 AI — tuned for 19x19 (<~2s/move, <~1.5s hint) */
+(function (root) {
+'use strict';
+var E = root.GoEngine || (typeof require !== 'undefined' ? require('./engine.js') : null);
+var BLACK = E.BLACK, WHITE = E.WHITE, EMPTY = E.EMPTY, opp = E.opp;
+function now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+
+/* ---------------- fast playout board ---------------- */
+function Sim(n) {
+  this.n = n; this.N = n * n; this.nb = E.nbrs(n); this.dg = E.diags(n);
+  this.b = new Int8Array(this.N); this.mark = new Int32Array(this.N); this.stamp = 1;
+  this.stack = new Int32Array(this.N); this.lastLib = -1;
+  this.emp = new Int32Array(this.N); this.empPos = new Int32Array(this.N); this.nEmp = 0; this.ko = -1;
+}
+Sim.prototype.load = function (b, ko) {
+  this.b.set(b); this.nEmp = 0; this.ko = ko == null ? -1 : ko;
+  for (var i = 0; i < this.N; i++) if (b[i] === EMPTY) { this.empPos[i] = this.nEmp; this.emp[this.nEmp++] = i; } else this.empPos[i] = -1;
+};
+Sim.prototype.addEmp = function (i) { this.empPos[i] = this.nEmp; this.emp[this.nEmp++] = i; };
+Sim.prototype.delEmp = function (i) {
+  var k = this.empPos[i], last = this.emp[--this.nEmp];
+  this.emp[k] = last; this.empPos[last] = k; this.empPos[i] = -1;
+};
+Sim.prototype.libs = function (idx, limit) {
+  var b = this.b, color = b[idx], st = ++this.stamp, mark = this.mark, stack = this.stack, nb = this.nb;
+  var sp = 0, cnt = 0; stack[sp++] = idx; mark[idx] = st;
+  while (sp) {
+    var s = stack[--sp], ns = nb[s];
+    for (var j = 0; j < ns.length; j++) {
+      var p = ns[j];
+      if (mark[p] === st) continue;
+      var v = b[p];
+      if (v === EMPTY) { mark[p] = st; this.lastLib = p; if (++cnt >= limit) return cnt; }
+      else if (v === color) { mark[p] = st; stack[sp++] = p; }
+    }
+  }
+  return cnt;
+};
+Sim.prototype.removeGroup = function (idx) {
+  var b = this.b, color = b[idx], nb = this.nb, stack = [idx], cnt = 0;
+  b[idx] = EMPTY; this.addEmp(idx); cnt++;
+  while (stack.length) {
+    var s = stack.pop(), ns = nb[s];
+    for (var j = 0; j < ns.length; j++) { var p = ns[j]; if (b[p] === color) { b[p] = EMPTY; this.addEmp(p); cnt++; stack.push(p); } }
+  }
+  return cnt;
+};
+Sim.prototype.isEye = function (p, c) {
+  var ns = this.nb[p], b = this.b;
+  for (var j = 0; j < ns.length; j++) if (b[ns[j]] !== c) return false;
+  var d = this.dg[p], bad = 0, o = 3 - c;
+  for (var k = 0; k < d.length; k++) if (b[d[k]] === o) bad++;
+  return d.length < 4 ? bad === 0 : bad <= 1;
+};
+Sim.prototype.legal = function (p, c) {
+  if (p === this.ko) return false;
+  var ns = this.nb[p], b = this.b, j;
+  for (j = 0; j < ns.length; j++) if (b[ns[j]] === EMPTY) return true;
+  for (j = 0; j < ns.length; j++) {
+    var v = b[ns[j]];
+    if (v === c) { if (this.libs(ns[j], 2) >= 2) return true; }
+    else if (this.libs(ns[j], 2) === 1) return true;
+  }
+  return false;
+};
+Sim.prototype.badSelfAtari = function (p, c) {
+  var ns = this.nb[p], b = this.b, o = 3 - c, own = 0, emp = 0, j;
+  for (j = 0; j < ns.length; j++) {
+    var v = b[ns[j]];
+    if (v === EMPTY) emp++;
+    else if (v === o) { if (this.libs(ns[j], 2) === 1) return false; }
+    else own++;
+  }
+  if (emp >= 2 || own === 0) return false;
+  b[p] = c; var L = this.libs(p, 2); b[p] = EMPTY;
+  return L < 2;
+};
+Sim.prototype.place = function (p, c) {
+  var b = this.b, ns = this.nb[p], o = 3 - c, cap = 0, capAt = -1;
+  b[p] = c; this.delEmp(p);
+  for (var j = 0; j < ns.length; j++) {
+    var q = ns[j];
+    if (b[q] === o && this.libs(q, 1) === 0) { var k = this.removeGroup(q); cap += k; capAt = q; }
+  }
+  this.ko = -1;
+  if (cap === 1) {
+    var lone = true;
+    for (var t = 0; t < ns.length; t++) if (b[ns[t]] === c) { lone = false; break; }
+    if (lone && this.libs(p, 2) === 1) this.ko = capAt;
+  }
+  return cap;
+};
+Sim.prototype.tactical = function (last, c) {
+  if (last < 0) return -1;
+  var b = this.b, ns = this.nb[last], o = 3 - c;
+  if (b[last] === o && this.libs(last, 2) === 1) { var l = this.lastLib; if (this.legal(l, c)) return l; }
+  for (var j = 0; j < ns.length; j++) {
+    var q = ns[j];
+    if (b[q] === c && this.libs(q, 2) === 1) {
+      var l2 = this.lastLib;
+      if (this.legal(l2, c) && !this.badSelfAtari(l2, c)) return l2;
+    }
+    if (b[q] === o && this.libs(q, 2) === 1) { var l3 = this.lastLib; if (this.legal(l3, c)) return l3; }
+  }
+  return -1;
+};
+Sim.prototype.randomMove = function (c, region) {
+  if (region && region.length) {
+    var pool = region.slice(), n = pool.length;
+    while (n > 0) {
+      var k = (Math.random() * n) | 0, p = pool[k];
+      pool[k] = pool[--n];
+      if (this.b[p] === EMPTY && !this.isEye(p, c) && this.legal(p, c) && !this.badSelfAtari(p, c)) return p;
+    }
+    return -1;
+  }
+  var n2 = this.nEmp, emp = this.emp;
+  while (n2 > 0) {
+    var k2 = (Math.random() * n2) | 0, p2 = emp[k2];
+    if (!this.isEye(p2, c) && this.legal(p2, c) && !this.badSelfAtari(p2, c)) return p2;
+    n2--; emp[k2] = emp[n2]; emp[n2] = p2; this.empPos[emp[k2]] = k2; this.empPos[p2] = n2;
+  }
+  return -1;
+};
+Sim.prototype.playout = function (toPlay, last, region) {
+  var c = toPlay, passes = 0, maxMoves = Math.min(this.N * 2, region ? region.length * 4 + 40 : this.N * 2);
+  for (var m = 0; m < maxMoves && passes < 2; m++) {
+    var p = -1;
+    if (Math.random() < 0.85) p = this.tactical(last, c);
+    if (p < 0) p = this.randomMove(c, region);
+    if (p < 0) { passes++; this.ko = -1; last = -1; }
+    else { passes = 0; this.place(p, c); last = p; }
+    c = 3 - c;
+  }
+  return this.areaScore();
+};
+Sim.prototype.areaScore = function () {
+  var b = this.b, s = 0, nb = this.nb;
+  for (var i = 0; i < this.N; i++) {
+    var v = b[i];
+    if (v === BLACK) s++; else if (v === WHITE) s--;
+    else {
+      var ns = nb[i], seen = 0;
+      for (var j = 0; j < ns.length; j++) seen |= b[ns[j]];
+      if (seen === BLACK) s++; else if (seen === WHITE) s--;
+    }
+  }
+  return s;
+};
+Sim.prototype.owner = function (i) {
+  var v = this.b[i]; if (v) return v;
+  var ns = this.nb[i], seen = 0;
+  for (var j = 0; j < ns.length; j++) seen |= this.b[ns[j]];
+  return seen === 3 ? 0 : seen;
+};
+
+/* ---------------- geometry helpers ---------------- */
+function lineOf(n, i) { var r = (i / n) | 0, c = i % n; return Math.min(r, c, n - 1 - r, n - 1 - c); }
+function stoneCount(b) { var k = 0; for (var i = 0; i < b.length; i++) if (b[i]) k++; return k; }
+function rc(n, i) { return [(i / n) | 0, i % n]; }
+function dist(n, a, b) { var ra = (a / n) | 0, ca = a % n, rb = (b / n) | 0, cb = b % n; return Math.max(Math.abs(ra - rb), Math.abs(ca - cb)); }
+function manh(n, a, b) { var ra = (a / n) | 0, ca = a % n, rb = (b / n) | 0, cb = b % n; return Math.abs(ra - rb) + Math.abs(ca - cb); }
+
+/* opening points: 4-4 hoshi + 3-4 / 4-3 per corner (19x19 and smaller) */
+function openingPoints(n) {
+  if (n < 9) return E.starPoints(n).slice();
+  var a = n >= 13 ? 3 : 2, b = a + 1, z = n - 1 - a, y = n - 1 - b;
+  var pts = [
+    a * n + a, a * n + z, z * n + a, z * n + z, // 4-4 / 3-3 hoshi corners
+    a * n + b, b * n + a, a * n + y, b * n + z, // 3-4 / 4-3
+    y * n + a, z * n + b, y * n + z, z * n + y
+  ];
+  if (n >= 13) {
+    var m = (n - 1) / 2;
+    pts.push(m * n + a, m * n + z, a * n + m, z * n + m, m * n + m); // side hoshi + tengen
+  }
+  return pts;
+}
+/* approach / enclose / side-extension ideas around a stone */
+function shapeAround(n, i, color, b) {
+  var r = (i / n) | 0, c = i % n, out = [];
+  function add(rr, cc) {
+    if (rr < 0 || cc < 0 || rr >= n || cc >= n) return;
+    var p = rr * n + cc;
+    if (b[p] === EMPTY) out.push(p);
+  }
+  // one-point jump, knight, two-space extension along an edge
+  [[0, 2], [0, -2], [2, 0], [-2, 0], [1, 2], [1, -2], [-1, 2], [-1, -2], [2, 1], [2, -1], [-2, 1], [-2, -1],
+   [0, 3], [0, -3], [3, 0], [-3, 0]].forEach(function (d) { add(r + d[0], c + d[1]); });
+  return out;
+}
+
+/* candidate set: tactical + near stones + opening points (keeps 19x19 cheap) */
+function candidatePoints(pos, color) {
+  var n = pos.n, N = n * n, b = pos.b, set = new Set(), NB = E.nbrs(n);
+  var stones = [], stonesN = 0;
+  for (var i = 0; i < N; i++) if (b[i]) { stones.push(i); stonesN++; }
+  // tactical: liberties of groups with <= 3 libs, and points next to atari groups
+  E.allGroups(b, n).forEach(function (g) {
+    if (g.libs.length <= 3) g.libs.forEach(function (p) { set.add(p); });
+    if (g.libs.length === 1) {
+      E.defenderMoves(pos, g).forEach(function (p) { set.add(p); });
+      g.stones.forEach(function (s) { NB[s].forEach(function (p) { if (b[p] === EMPTY) set.add(p); }); });
+    }
+  });
+  if (pos.ko >= 0) set.add(pos.ko);
+  // near existing stones (Chebyshev ≤ 2 early, ≤ 3 midgame near last activity)
+  var nearR = stonesN < 30 ? 2 : 3;
+  if (stonesN === 0) {
+    openingPoints(n).forEach(function (p) { set.add(p); });
+  } else {
+    stones.forEach(function (s) {
+      var r = (s / n) | 0, c = s % n;
+      for (var dr = -nearR; dr <= nearR; dr++) for (var dc = -nearR; dc <= nearR; dc++) {
+        var rr = r + dr, cc = c + dc;
+        if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue;
+        var p = rr * n + cc;
+        if (b[p] === EMPTY) set.add(p);
+      }
+      if (stonesN < 40) shapeAround(n, s, b[s], b).forEach(function (p) { set.add(p); });
+    });
+    if (stonesN < 16) openingPoints(n).forEach(function (p) { if (b[p] === EMPTY) set.add(p); });
+  }
+  // filter first-line early
+  var out = [];
+  set.forEach(function (p) {
+    if (b[p] !== EMPTY) return;
+    if (stonesN < 12 && lineOf(n, p) === 0) return;
+    out.push(p);
+  });
+  if (!out.length) {
+    for (var k = 0; k < N; k++) if (b[k] === EMPTY && lineOf(n, k) > 0) out.push(k);
+  }
+  return out;
+}
+
+/* ---------------- ownership / dead (fast on 19x19) ---------------- */
+function ownership(pos, opts) {
+  opts = opts || {};
+  var n = pos.n, N = n * n, sim = new Sim(n), own = new Float32Array(N), cnt = 0;
+  var tEnd = now() + (opts.time || (n >= 19 ? 280 : 300));
+  var maxP = opts.playouts || (n >= 19 ? 180 : 800);
+  var region = opts.region || null;
+  while (cnt < maxP && (cnt < 20 || now() < tEnd)) {
+    sim.load(pos.b, pos.ko);
+    sim.playout(pos.toPlay, -1, region);
+    for (var i = 0; i < N; i++) { var o = sim.owner(i); if (o === BLACK) own[i]++; else if (o === WHITE) own[i]--; }
+    cnt++;
+  }
+  for (var k = 0; k < N; k++) own[k] /= Math.max(1, cnt);
+  return own;
+}
+function estimateDead(pos, opts) {
+  opts = opts || {};
+  var n = pos.n;
+  // heuristic first: groups with 1 liberty (already captured next) or eyesOf==0 and ≤2 libs and surrounded
+  var dead = new Set(), suspicious = [];
+  E.allGroups(pos.b, n).forEach(function (g) {
+    var eyes = E.eyesOf(pos.b, n, g.stones[0]);
+    if (eyes >= 2) return;
+    if (g.libs.length <= 1) { g.stones.forEach(function (s) { dead.add(s); }); return; }
+    if (g.libs.length <= 2 && eyes === 0 && g.stones.length <= 12) suspicious.push(g);
+  });
+  if (n >= 19) {
+    // short Monte Carlo focused near suspicious groups
+    var region = [];
+    suspicious.forEach(function (g) {
+      g.stones.forEach(function (s) {
+        var r = (s / n) | 0, c = s % n;
+        for (var dr = -2; dr <= 2; dr++) for (var dc = -2; dc <= 2; dc++) {
+          var rr = r + dr, cc = c + dc;
+          if (rr >= 0 && cc >= 0 && rr < n && cc < n) region.push(rr * n + cc);
+        }
+      });
+    });
+    region = Array.from(new Set(region));
+    var own = ownership(pos, { time: opts.time || 250, playouts: opts.playouts || 120, region: region.length ? region : null });
+    E.allGroups(pos.b, n).forEach(function (g) {
+      if (dead.has(g.stones[0])) return;
+      var sum = 0; g.stones.forEach(function (s) { sum += own[s]; });
+      var avg = sum / g.stones.length;
+      if ((g.color === BLACK && avg < -0.35) || (g.color === WHITE && avg > 0.35)) g.stones.forEach(function (s) { dead.add(s); });
+    });
+    return { dead: dead, own: own };
+  }
+  var own2 = ownership(pos, opts || { time: 400, playouts: 1500 });
+  E.allGroups(pos.b, n).forEach(function (g) {
+    var sum = 0; g.stones.forEach(function (s) { sum += own2[s]; });
+    var avg = sum / g.stones.length;
+    if ((g.color === BLACK && avg < -0.3) || (g.color === WHITE && avg > 0.3)) g.stones.forEach(function (s) { dead.add(s); });
+  });
+  return { dead: dead, own: own2 };
+}
+
+/* ---------------- heuristic move evaluation ---------------- */
+function makeCtx(pos, color) {
+  var n = pos.n, N = n * n, distArr = new Int32Array(N).fill(99), q = [];
+  for (var i = 0; i < N; i++) if (pos.b[i]) { distArr[i] = 0; q.push(i); }
+  var NB = E.nbrs(n);
+  for (var k = 0; k < q.length; k++) NB[q[k]].forEach(function (p) { if (distArr[p] > distArr[q[k]] + 1) { distArr[p] = distArr[q[k]] + 1; q.push(p); } });
+  var myAtari = [], oppAtari = [];
+  E.allGroups(pos.b, n).forEach(function (g) { if (g.libs.length === 1) (g.color === color ? myAtari : oppAtari).push(g); });
+  return { dist: q.length ? distArr : null, stones: stoneCount(pos.b), myAtari: myAtari, oppAtari: oppAtari };
+}
+
+function cornerOf(n, i) {
+  var r = (i / n) | 0, c = i % n, mid = (n - 1) / 2;
+  return (r < mid ? 0 : 1) * 2 + (c < mid ? 0 : 1);
+}
+function cornerTaken(b, n, corner) {
+  var a = n >= 13 ? 3 : 2, z = n - 1 - a;
+  var pts = [[a, a], [a, z], [z, a], [z, z]][corner];
+  // any stone in the 5x5 corner box counts as "taken"
+  var r0 = corner < 2 ? 0 : n - 6, c0 = corner % 2 === 0 ? 0 : n - 6;
+  for (var r = r0; r < r0 + 6; r++) for (var c = c0; c < c0 + 6; c++) if (b[r * n + c]) return true;
+  return false;
+}
+
+function evalMove(pos, idx, color, ctx) {
+  var n = pos.n, b = pos.b, NB = E.nbrs(n), o = opp(color);
+  if (b[idx] !== EMPTY) return null;
+  var r = E.play(pos, idx, color);
+  if (!r.ok) return null;
+  var info = { idx: idx, score: 0, tags: [], captured: r.captured.length };
+  if (E.isEyeShape(b, n, idx, color) && E.isTrueEye(b, n, idx, color)) { info.score = -100; info.tags.push('fillEye'); return info; }
+  var s = 0, after = r.pos.b, my = E.group(after, n, idx), L = my.libs.length;
+  if (r.captured.length) { s += 30 + 10 * r.captured.length; info.tags.push('capture'); }
+  var seenG = {};
+  NB[idx].forEach(function (p) {
+    if (b[p] === color && !seenG[p]) {
+      var g = E.group(b, n, p); g.stones.forEach(function (t) { seenG[t] = 1; });
+      if (g.libs.length === 1) {
+        if (L >= 3 || (L === 2 && !E.canCapture(r.pos, idx, true, 24))) { s += 35 + 8 * g.stones.length; info.tags.push('escape'); }
+        else info.tags.push('escapeFail');
+      }
+    }
+  });
+  if (r.captured.length && ctx.myAtari.length) {
+    ctx.myAtari.forEach(function (g) {
+      if (after[g.stones[0]] === color && E.group(after, n, g.stones[0]).libs.length >= 2) {
+        s += 20 + 8 * g.stones.length; info.tags.push('escape');
+      }
+    });
+  }
+  if (L === 1 && !r.captured.length) { s -= 40 + 10 * my.stones.length; info.tags.push('selfAtari'); }
+  else if (L === 2 && !r.captured.length && E.canCapture(r.pos, idx, true, 18)) { s -= 22 + 3 * my.stones.length; info.tags.push('weak'); }
+
+  var seenO = {}, ataris = 0;
+  NB[idx].forEach(function (p) {
+    if (b[p] === o && after[p] === o && !seenO[p]) {
+      var g1 = E.group(after, n, p);
+      g1.stones.forEach(function (t) { seenO[t] = 1; });
+      if (g1.libs.length === 1 && L >= 2) {
+        ataris++;
+        if (E.canCapture(r.pos, p, false, 28)) { s += 22 + 6 * g1.stones.length; info.tags.push('killAtari'); }
+        else { s += 5; info.tags.push('atari'); }
+      }
+    }
+  });
+  if (ataris >= 2) { s += 25; info.tags.push('doubleAtari'); }
+
+  // opening / position
+  var line = lineOf(n, idx), stones = ctx.stones, early = stones < (n >= 19 ? 24 : n * n / 6);
+  if (line === 0) s -= (early ? 18 : 4);
+  else if (line === 1) s -= (early ? 8 : 1);
+  else if ((line === 2 || line === 3) && early) s += 6;
+  if (early && n >= 9) {
+    var cor = cornerOf(n, idx);
+    var taken = cornerTaken(b, n, cor);
+    var a = n >= 13 ? 3 : 2, z = n - 1 - a, m = (n - 1) / 2;
+    var rr = (idx / n) | 0, cc = idx % n;
+    var isHoshi = (rr === a || rr === z) && (cc === a || cc === z);
+    var is34 = ((rr === a || rr === z) && (cc === a + 1 || cc === z - 1)) || ((cc === a || cc === z) && (rr === a + 1 || rr === z - 1));
+    if (!taken && (isHoshi || is34)) { s += isHoshi ? 18 : 14; info.tags.push('openCorner'); }
+    else if (!taken && line >= 2 && line <= 4 && (rr < 6 || rr >= n - 6) && (cc < 6 || cc >= n - 6)) { s += 8; info.tags.push('openCorner'); }
+    else if (taken && line >= 2 && line <= 4 && stones < 40) {
+      // approach / enclose / side extension
+      if (ctx.dist && ctx.dist[idx] >= 2 && ctx.dist[idx] <= 4) { s += 7; info.tags.push(ctx.dist[idx] <= 3 ? 'enclose' : 'extendSide'); }
+    }
+    // empty side hoshi after corners taken
+    if ((rr === m && (cc === a || cc === z)) || (cc === m && (rr === a || rr === z))) {
+      var cornersDone = 0;
+      for (var ci = 0; ci < 4; ci++) if (cornerTaken(b, n, ci)) cornersDone++;
+      if (cornersDone >= 3 && stones < 40) { s += 10; info.tags.push('extendSide'); }
+    }
+  }
+  if (ctx.dist) { var d = ctx.dist[idx]; if (d <= 2) s += 2; else if (d > 5 && !early) s -= 2; }
+  var ownGroups = {}, oppGroups = {}, nOwn = 0, nOpp = 0;
+  NB[idx].forEach(function (p) {
+    if (E.isEyeShape(after, n, p, color) && !E.isEyeShape(b, n, p, color)) { s += 2; info.tags.push('eye'); }
+    if (b[p] === color) { var key = Math.min.apply(null, E.group(b, n, p).stones); if (!ownGroups[key]) { ownGroups[key] = 1; nOwn++; } }
+    if (b[p] === o) { var key2 = Math.min.apply(null, E.group(b, n, p).stones); if (!oppGroups[key2]) { oppGroups[key2] = 1; nOpp++; } }
+  });
+  if (nOwn >= 2) { s += 4; info.tags.push('connect'); }
+  if (nOpp >= 2) { s += 3; info.tags.push('cut'); }
+  if (nOpp >= 1) info.tags.push('contact');
+  if (nOwn >= 1) info.tags.push('extend');
+  info.score = s;
+  return info;
+}
+
+function evalAll(pos, color, opts) {
+  opts = opts || {};
+  var ctx = makeCtx(pos, color);
+  var cands = opts.cands || candidatePoints(pos, color);
+  var out = [];
+  for (var i = 0; i < cands.length; i++) {
+    var e = evalMove(pos, cands[i], color, ctx);
+    if (e && e.score > -100) out.push(e);
+  }
+  out.sort(function (a, b) { return b.score - a.score; });
+  return out;
+}
+
+/* ---------------- Monte Carlo (capped for 19x19) ---------------- */
+function localRegion(pos, seeds, rad) {
+  var n = pos.n, set = new Set();
+  seeds.forEach(function (s) {
+    if (s < 0) return;
+    var r = (s / n) | 0, c = s % n;
+    for (var dr = -rad; dr <= rad; dr++) for (var dc = -rad; dc <= rad; dc++) {
+      var rr = r + dr, cc = c + dc;
+      if (rr >= 0 && cc >= 0 && rr < n && cc < n) set.add(rr * n + cc);
+    }
+  });
+  return Array.from(set);
+}
+function mcSearch(pos, color, opts) {
+  opts = opts || {};
+  var komi = opts.komi == null ? 6.5 : opts.komi, n = pos.n, N = n * n;
+  var evals = opts.evals || evalAll(pos, color);
+  var K = opts.maxCands || (n >= 19 ? 14 : n <= 9 ? 24 : 20);
+  var cands = evals.filter(function (e) { return e.tags.indexOf('selfAtari') < 0 || e.captured; }).slice(0, K);
+  if (!cands.length) cands = evals.slice(0, K);
+  if (!cands.length) return { move: -1, winrate: 0, cands: [], playouts: 0 };
+  var sim = new Sim(n), own = new Float32Array(N), total = 0;
+  var st = cands.map(function (e) {
+    var prior = Math.max(0.05, Math.min(1, 0.5 + e.score / 100));
+    return { idx: e.idx, e: e, w: prior * 2, v: 2, rw: 0, rv: 0 };
+  });
+  var timeBudget = opts.time || (n >= 19 ? 900 : 1000);
+  var tEnd = now() + timeBudget, maxP = opts.playouts || (n >= 19 ? 2500 : 20000);
+  var sign = color === BLACK ? 1 : -1;
+  var region = n >= 19 ? localRegion(pos, cands.map(function (c) { return c.idx; }).concat(pos.b[0] !== undefined ? [] : []), 4) : null;
+  // also include all stones for region scoring context
+  if (region) {
+    for (var i = 0; i < N; i++) if (pos.b[i]) {
+      var r = (i / n) | 0, c = i % n;
+      for (var dr = -1; dr <= 1; dr++) for (var dc = -1; dc <= 1; dc++) {
+        var rr = r + dr, cc = c + dc;
+        if (rr >= 0 && cc >= 0 && rr < n && cc < n) region.push(rr * n + cc);
+      }
+    }
+    region = Array.from(new Set(region));
+  }
+  while (total < maxP) {
+    if ((total & 7) === 0 && now() > tEnd && total >= cands.length * 3) break;
+    var best = null, bv = -1, lt = Math.log(total + 1);
+    for (var k = 0; k < st.length; k++) {
+      var s = st[k], u = s.w / s.v + 0.85 * Math.sqrt(lt / s.v);
+      if (u > bv) { bv = u; best = s; }
+    }
+    sim.load(pos.b, pos.ko);
+    sim.place(best.idx, color);
+    var raw = sim.playout(opp(color), best.idx, region) - komi, margin = raw * sign;
+    var reward = (margin > 0 ? 0.85 : 0) + 0.15 * (0.5 + 0.5 * Math.tanh(margin / (n >= 19 ? 20 : 10)));
+    best.w += reward; best.v++; best.rw += margin > 0 ? 1 : 0; best.rv++;
+    if ((total & 3) === 0) for (var j = 0; j < N; j++) { var o = sim.owner(j); if (o === BLACK) own[j]++; else if (o === WHITE) own[j]--; }
+    total++;
+  }
+  var ownDiv = Math.max(1, (total / 4) | 0);
+  for (var t = 0; t < N; t++) own[t] /= ownDiv;
+  st.sort(function (a, b) { return b.v - a.v; });
+  var top = st[0];
+  return { move: top.idx, eval: top.e, winrate: top.rv ? top.rw / top.rv : 0.5, ownership: own, playouts: total,
+           cands: st.map(function (s) { return { idx: s.idx, v: s.v, wr: s.rv ? s.rw / s.rv : 0 }; }) };
+}
+
+/* ---------------- computer player ---------------- */
+var LEVELS = [
+  { name: '入門', noise: 28, random: 0.35, mc: 0 },
+  { name: '初級', noise: 8, random: 0.05, mc: 0 },
+  { name: '中級', noise: 0, random: 0, mc: 850 },
+  { name: '高級', noise: 0, random: 0, mc: 1400 }
+];
+function estimateFromOwn(pos, own, komi) {
+  var dead = new Set();
+  E.allGroups(pos.b, pos.n).forEach(function (g) {
+    var sum = 0; g.stones.forEach(function (s) { sum += own[s]; }); var avg = sum / g.stones.length;
+    if ((g.color === BLACK && avg < -0.3) || (g.color === WHITE && avg > 0.3)) g.stones.forEach(function (s) { dead.add(s); });
+  });
+  return E.score(pos.b, pos.n, dead, komi);
+}
+function wantPass(pos, color, evals, ctx) {
+  var n = pos.n, komi = ctx.komi, moveNo = ctx.moveNo || 0;
+  var useful = evals.filter(function (e) { return e.tags.indexOf('selfAtari') < 0 || e.captured; });
+  if (!useful.length) return true;
+  if (moveNo < n * n / 4 && !ctx.oppPassed) return false;
+  // on 19x19 don't burn time on ownership midgame
+  if (!ctx.oppPassed && useful[0].score > 4) return false;
+  var own = ctx.ownership;
+  if (!own) {
+    if (n >= 19 && moveNo < n * n) return false;
+    own = ownership(pos, { time: n >= 19 ? 180 : 200, playouts: n >= 19 ? 80 : 600 });
+  }
+  var open = useful.filter(function (e) { return Math.abs(own[e.idx]) < 0.75; });
+  if (!open.length) return true;
+  if (ctx.oppPassed && moveNo > n * n * 0.9) {
+    var sign = color === BLACK ? 1 : -1;
+    var est = estimateFromOwn(pos, own, komi), myLead = (est.black - est.white) * sign;
+    if (myLead > 0) return true;
+  }
+  return false;
+}
+function chooseMove(pos, color, opts) {
+  opts = opts || {};
+  var lv = LEVELS[opts.level == null ? 1 : opts.level], komi = opts.komi == null ? 6.5 : opts.komi;
+  var evals = evalAll(pos, color);
+  var ctx = { komi: komi, moveNo: opts.moveNo, oppPassed: opts.oppPassed };
+  var mc = null;
+  if (lv.mc) {
+    var budget = lv.mc * (pos.n >= 19 ? 1 : pos.n > 9 ? 1.1 : 1);
+    mc = mcSearch(pos, color, { komi: komi, time: budget, evals: evals, maxCands: pos.n >= 19 ? 12 : 20 });
+    ctx.ownership = mc.ownership;
+    if (mc.move >= 0 && mc.winrate < 0.03 && opts.oppPassed) return { move: -1, why: 'hopeless' };
+  }
+  if (wantPass(pos, color, evals, ctx)) return { move: -1, why: 'settled' };
+  if (mc) {
+    var topWr = mc.cands.length ? mc.cands[0].wr : 0, tac = null;
+    mc.cands.forEach(function (c) {
+      var e = evals.filter(function (x) { return x.idx === c.idx; })[0];
+      if (!e || e.score < 30 || (e.tags.indexOf('escape') < 0 && e.tags.indexOf('capture') < 0)) return;
+      if (c.wr >= topWr - 0.06 && (!tac || e.score > tac.e.score)) tac = { c: c, e: e };
+    });
+    if (tac) return { move: tac.c.idx, why: 'mc-tactical', winrate: tac.c.wr };
+    return { move: mc.move, why: 'mc', winrate: mc.winrate };
+  }
+  var pool = evals.filter(function (e) { return e.tags.indexOf('selfAtari') < 0 || e.captured; });
+  if (!pool.length) pool = evals;
+  if (Math.random() < lv.random) {
+    // 入門: pick among topish opening/safe moves, never first-line early
+    var safe = pool.filter(function (e) { return lineOf(pos.n, e.idx) > 0 || stoneCount(pos.b) > pos.n * 2; });
+    var top = (safe.length ? safe : pool).slice(0, Math.min(8, safe.length || pool.length));
+    var pick = top[(Math.random() * top.length) | 0];
+    return { move: pick.idx, why: 'random' };
+  }
+  var best = null, bs = -1e9;
+  pool.forEach(function (e) { var sc = e.score + Math.random() * lv.noise; if (sc > bs) { bs = sc; best = e; } });
+  return { move: best.idx, why: 'heuristic' };
+}
+
+/* ---------------- hints ---------------- */
+var CN = { 1: '黑', 2: '白' };
+function hint(pos, color, opts) {
+  opts = opts || {};
+  var n = pos.n, o = opp(color), me = CN[color], them = CN[o];
+  var ctx = makeCtx(pos, color);
+  var evals = evalAll(pos, color);
+  var byIdx = {}; evals.forEach(function (e) { byIdx[e.idx] = e; });
+  var mySorted = ctx.myAtari.slice().sort(function (a, b) { return b.stones.length - a.stones.length; });
+  for (var i = 0; i < mySorted.length; i++) {
+    var g = mySorted[i], saves = [];
+    E.defenderMoves(pos, g).forEach(function (m) {
+      var r = E.play(pos, m, color); if (!r.ok) return;
+      var gg = E.group(r.pos.b, n, g.stones[0]);
+      if (gg.libs.length >= 3 || (gg.libs.length === 2 && !E.canCapture(r.pos, g.stones[0], true, 28))) saves.push({ m: m, cap: r.captured.length, L: gg.libs.length });
+    });
+    if (saves.length) {
+      saves.sort(function (a, b) { return (b.cap - a.cap) || (b.L - a.L); });
+      var sv = saves[0];
+      return { move: sv.m, stones: g.stones, kind: 'escape',
+        text: sv.cap ? '你的' + me + '子被打吃了！把旁邊只剩一口氣的' + them + '子提掉，就安全了！'
+                     : '你的' + me + '子被打吃了（只剩一口氣），快從這裡「長」出去逃跑！' };
+    }
+  }
+  var caps = ctx.oppAtari.filter(function (g) { return E.isLegal(pos, g.libs[0], color); })
+    .sort(function (a, b) { return b.stones.length - a.stones.length; });
+  if (caps.length) {
+    var cg = caps[0];
+    return { move: cg.libs[0], stones: cg.stones, kind: 'capture',
+      text: (cg.stones.length > 1 ? '這' + cg.stones.length + '顆' : '這顆') + them + '子只剩一口氣，下這裡可以提掉！' };
+  }
+  var da = evals.filter(function (e) { return e.tags.indexOf('doubleAtari') >= 0 && e.tags.indexOf('weak') < 0; })[0];
+  if (da) return { move: da.idx, kind: 'doubleAtari', text: '雙打吃！一步打吃兩塊' + them + '子，對方只能救一塊！' };
+  var ka = evals.filter(function (e) { return e.tags.indexOf('killAtari') >= 0 && e.tags.indexOf('selfAtari') < 0; })[0];
+  if (ka) return { move: ka.idx, kind: 'killAtari', text: '打吃！' + them + '子逃不掉了，一直追就可以吃掉它！' };
+  var groups = E.allGroups(pos.b, n).filter(function (g) { return g.color === color && g.libs.length === 2; });
+  for (var k = 0; k < groups.length; k++) {
+    var wg = groups[k];
+    if (!E.canCapture(pos, wg.stones[0], true, 22)) continue;
+    var fixes = [];
+    wg.libs.concat(E.defenderMoves(pos, wg)).forEach(function (m) {
+      var e = byIdx[m]; if (!e) return;
+      var r = E.play(pos, m, color); if (!r.ok) return;
+      if (!E.canCapture(r.pos, wg.stones[0], true, 22)) fixes.push(e);
+    });
+    if (fixes.length) {
+      fixes.sort(function (a, b) { return b.score - a.score; });
+      return { move: fixes[0].idx, stones: wg.stones, kind: 'defend',
+        text: '小心！這' + (wg.stones.length > 1 ? '塊' : '顆') + me + '子只剩兩口氣，快要被打吃了。先在這裡補一手！' };
+    }
+  }
+  // opening advice without heavy MC
+  var stones = ctx.stones;
+  if (stones < (n >= 19 ? 20 : 10)) {
+    var open = evals.filter(function (e) { return e.tags.indexOf('openCorner') >= 0; })[0];
+    if (open) return { move: open.idx, kind: 'opening', text: '先佔角！「金角銀邊草肚皮」，角落最容易圍地喔。' };
+    var enc = evals.filter(function (e) { return e.tags.indexOf('enclose') >= 0; })[0];
+    if (enc) return { move: enc.idx, kind: 'opening', text: '守角！把你的角圍起來，地就比較大了。' };
+    var side = evals.filter(function (e) { return e.tags.indexOf('extendSide') >= 0; })[0];
+    if (side) return { move: side.idx, kind: 'opening', text: '拆邊！角佔好了，往邊上開，地盤會變大。' };
+  }
+  // short MC for general advice
+  var budget = opts.time || (n >= 19 ? 700 : 700);
+  var mc = mcSearch(pos, color, { komi: opts.komi == null ? 6.5 : opts.komi, time: budget, evals: evals, maxCands: n >= 19 ? 10 : 18 });
+  var settled = wantPass(pos, color, evals, { komi: opts.komi, moveNo: opts.moveNo || 99, oppPassed: opts.oppPassed, ownership: mc.ownership });
+  if (settled && (opts.moveNo || 0) > n * n / 3) return { move: -1, kind: 'pass', text: '地都圍好了，沒有好地方可以下了。可以按「停一手」，準備數地囉！' };
+  var e2 = mc.eval || byIdx[mc.move], tags = e2 ? e2.tags : [], line = lineOf(n, mc.move), text;
+  if (tags.indexOf('openCorner') >= 0) text = '先佔角！「金角銀邊草肚皮」，角落最容易圍地喔。';
+  else if (tags.indexOf('enclose') >= 0) text = '守角！把你的角圍起來，地就比較大了。';
+  else if (tags.indexOf('extendSide') >= 0) text = '拆邊！往邊上開，地盤會變大。';
+  else if (tags.indexOf('eye') >= 0) text = '下這裡可以幫你的棋「做眼」，有兩個眼就是活棋！';
+  else if (tags.indexOf('connect') >= 0) text = '把你的' + me + '子連起來！連在一起的棋比較強，不容易被吃。';
+  else if (tags.indexOf('cut') >= 0) text = '把' + them + '子切斷！分開的' + them + '子比較弱。';
+  else if (tags.indexOf('atari') >= 0) text = '打吃' + them + '子，讓它只剩一口氣！';
+  else if (tags.indexOf('contact') >= 0) text = '擋住' + them + '子，不讓它跑進你的地盤！';
+  else if (tags.indexOf('extend') >= 0) text = '從你的棋子往外「長」，把地盤圍大一點！';
+  else if (line <= 1 && stones > n) text = '在邊上把地圍起來，守住你的地盤！';
+  else text = '這裡還是空地，先搶下來，地盤就變大了！';
+  if (mySorted.length) text = '你被打吃的子已經逃不掉了（被征子），不要再逃。' + text;
+  return { move: mc.move, kind: 'general', text: text, winrate: mc.winrate };
+}
+
+function warnings(pos, color) {
+  var my = [], theirs = [];
+  E.allGroups(pos.b, pos.n).forEach(function (g) { if (g.libs.length === 1) (g.color === color ? my : theirs).push(g); });
+  return { myAtari: my, oppAtari: theirs };
+}
+function isSelfAtari(pos, idx, color) {
+  var r = E.play(pos, idx, color); if (!r.ok) return false;
+  return !r.captured.length && E.group(r.pos.b, pos.n, idx).libs.length === 1;
+}
+
+var API = { Sim: Sim, ownership: ownership, estimateDead: estimateDead, evalAll: evalAll, mcSearch: mcSearch,
+  chooseMove: chooseMove, hint: hint, warnings: warnings, isSelfAtari: isSelfAtari, LEVELS: LEVELS, wantPass: wantPass,
+  candidatePoints: candidatePoints, openingPoints: openingPoints };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.GoAI = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ---- puzzle.js ---- */
+/* 題目判斷 puzzle runtime: setup + judging each tap, shared by the app and the tests */
+(function (root) {
+'use strict';
+var E = root.GoEngine || (typeof require !== 'undefined' ? require('./engine.js') : null);
+var BLACK = E.BLACK, WHITE = E.WHITE;
+var CHOICE_GOALS = { choice: 1, countLibs: 1, countTerritory: 1, countArea: 1, winner: 1 };
+
+function setup(pz) {
+  var f = E.fromRows(pz.board);
+  var pos = f.pos; pos.toPlay = BLACK;
+  if (pz.ko) pos.ko = pz.ko[0] * pos.n + pz.ko[1];
+  var st = { pz: pz, pos: pos, n: pos.n, targets: f.targets, marks: f.marks, stage: 0, found: [], done: false, moves: [] };
+  if (CHOICE_GOALS[pz.goal]) st.choice = choiceData(pz, st);
+  return st;
+}
+function answerValue(pz, st) {
+  var pos = st.pos, n = st.n;
+  switch (pz.goal) {
+    case 'choice': return pz.answer;
+    case 'countLibs': return E.group(pos.b, n, st.targets[0]).libs.length;
+    case 'countTerritory': return E.score(pos.b, n).terrB;
+    case 'countArea': return E.score(pos.b, n).black;
+    case 'winner': var s = E.score(pos.b, n, null, pz.komi || 0); return s.winner === BLACK ? 0 : 1;
+  }
+}
+function choiceData(pz, st) {
+  var ans = answerValue(pz, st);
+  if (pz.goal === 'choice') return { options: pz.choices, answer: ans };
+  if (pz.goal === 'winner') return { options: ['黑棋贏', '白棋贏'], answer: ans };
+  var start = Math.max(0, ans - (pz.offset == null ? 1 : pz.offset)), opts = [];
+  for (var k = start; opts.length < 4; k++) opts.push(k);
+  return { options: opts.map(String), answer: opts.indexOf(ans) };
+}
+function judgeChoice(st, i) {
+  var ok = i === st.choice.answer;
+  if (ok) st.done = true;
+  return { ok: ok, done: ok };
+}
+
+/* judge a tap at idx. Returns {ok, done, pos?, captured?, reply?, mark?, msg?} ; mutates st when ok */
+function judge(st, idx, dry) {
+  var pz = st.pz, pos = st.pos, n = st.n, goal = st.stage === 1 ? pz.goal2 || 'captureAny' : pz.goal;
+  var t = st.targets[0];
+  var res;
+  if (goal === 'liberties') {
+    var libs = E.group(pos.b, n, t).libs;
+    if (libs.indexOf(idx) < 0 || st.found.indexOf(idx) >= 0) return { ok: false, msg: st.found.indexOf(idx) >= 0 ? '這口氣已經找到了！' : null };
+    if (dry) return { ok: true };
+    st.found.push(idx);
+    var all = st.found.length === libs.length;
+    if (all) st.done = true;
+    return { ok: true, done: all, mark: idx, progress: st.found.length + ' / ' + libs.length };
+  }
+  if (goal === 'illegal' || goal === 'trueEye' || goal === 'falseEye') {
+    var ok0 = pos.b[idx] === 0 && (goal === 'illegal' ? !E.isLegal(pos, idx, BLACK)
+            : goal === 'trueEye' ? E.isTrueEye(pos.b, n, idx, BLACK) : E.isFalseEye(pos.b, n, idx, BLACK));
+    if (ok0 && !dry) st.done = true;
+    return { ok: ok0, done: ok0, mark: ok0 ? idx : undefined, reason: goal === 'illegal' && ok0 ? E.play(pos, idx, BLACK).reason : undefined };
+  }
+  var r = E.play(pos, idx, BLACK);
+  if (!r.ok) return { ok: false, illegal: r.reason };
+  var after = r.pos, ok = false, done = true, reply = -1, msg = null;
+  switch (goal) {
+    case 'point':
+      ok = st.marks.indexOf(idx) >= 0; break;
+    case 'capture':
+      ok = st.targets.length ? st.targets.every(function (s) { return after.b[s] === 0; }) : r.captured.length >= (pz.min || 1); break;
+    case 'captureAny':
+      ok = r.captured.length > 0; break;
+    case 'atari':
+      ok = after.b[t] === WHITE && E.group(after.b, n, t).libs.length === 1 && E.group(after.b, n, idx).libs.length >= 2; break;
+    case 'escape':
+      var g = E.group(after.b, n, t);
+      ok = g.libs.length >= 3 || (g.libs.length === 2 && !E.canCapture(after, t, true, 40));
+      if (!ok && g.libs.length === 2) msg = '這樣只有兩口氣，還是會被追著打吃喔！往空的地方跑。';
+      break;
+    case 'doubleAtari':
+      var cnt = 0, seen = {};
+      E.nbrs(n)[idx].forEach(function (p) {
+        if (after.b[p] === WHITE && !seen[p]) { var gg = E.group(after.b, n, p); gg.stones.forEach(function (s) { seen[s] = 1; }); if (gg.libs.length === 1) cnt++; }
+      });
+      ok = cnt >= 2 && E.group(after.b, n, idx).libs.length >= 2;
+      if (ok && !dry) {
+        // computer saves its biggest group in atari
+        var ga = E.allGroups(after.b, n).filter(function (x) { return x.color === WHITE && x.libs.length === 1; })
+          .sort(function (a, b) { return b.stones.length - a.stones.length; });
+        reply = E.bestDefence(after, ga[0].stones[0]);
+        done = false;
+      }
+      break;
+    case 'captureTarget':
+      if (after.b[t] === 0) { ok = true; break; }
+      var before = E.group(pos.b, n, t), L = E.group(after.b, n, t).libs.length;
+      if (before.libs.length === 1) { msg = '白子只剩一口氣了，直接把它提掉！'; break; }
+      var near = before.stones.some(function (s) { return Math.abs(((s / n) | 0) - ((idx / n) | 0)) <= 2 && Math.abs(s % n - idx % n) <= 2; });
+      ok = near && L <= 2 && E.canCapture(after, t, false, 60);
+      if (ok && !dry) { reply = E.bestDefence(after, t); done = false; }
+      break;
+    case 'live':
+      ok = E.lifeSearch(after, st.marks, t, pz.depth || 8); break;
+    case 'kill':
+      ok = !E.lifeSearch(after, st.marks, t, pz.depth || 8); break;
+    case 'tiger':
+      var cp = st.marks[0];
+      if (idx === cp) { msg = '直接連起來也可以！不過這一關要練習「虎口」，試試看別的地方。'; ok = false; break; }
+      if (after.b[cp] !== 0) { ok = false; break; }
+      var w = E.play(after, cp, WHITE);
+      ok = (!w.ok || (w.captured.length === 0 && E.group(w.pos.b, n, cp).libs.length === 1)) && E.group(after.b, n, idx).libs.length >= 2;
+      break;
+  }
+  if (!ok || dry) return { ok: ok, msg: msg };
+  st.moves.push(idx);
+  st.pos = after;
+  var out = { ok: true, done: done, captured: r.captured, move: idx };
+  if (!done) {
+    if (reply >= 0) {
+      var rr = E.play(st.pos, reply, WHITE);
+      if (rr.ok) { st.pos = rr.pos; out.reply = reply; out.replyCaptured = rr.captured; }
+      else st.pos = E.play(st.pos, -1, WHITE).pos;
+    } else st.pos = E.play(st.pos, -1, WHITE).pos;
+    if (goal === 'doubleAtari') st.stage = 1;
+  }
+  st.done = done;
+  return out;
+}
+/* every point that would be accepted right now (used for hints and tests) */
+function solutions(st) {
+  if (CHOICE_GOALS[st.pz.goal]) return [];
+  var out = [];
+  for (var i = 0; i < st.n * st.n; i++) {
+    if (st.pz.goal === 'liberties' || st.pz.goal === 'illegal' || st.pz.goal === 'trueEye' || st.pz.goal === 'falseEye') {
+      if (judge(st, i, true).ok) out.push(i);
+    } else if (st.pos.b[i] === 0 && judge(st, i, true).ok) out.push(i);
+  }
+  return out;
+}
+var API = { setup: setup, judge: judge, judgeChoice: judgeChoice, solutions: solutions, CHOICE_GOALS: CHOICE_GOALS };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.GoPuzzle = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ---- lessons.js ---- */
+/* 學習關卡資料。棋盤記號：X 黑子、O 白子、x/o 題目要看的子（目標）、* 特別的點、. 空點。小朋友都下黑棋。 */
+(function (root) {
+'use strict';
+var E9 = ['.........', '.........', '.........', '.........', '.........', '.........', '.........', '.........', '.........'];
+var LESSONS = [
+{
+  id: 'rules', title: '棋盤和下棋規則', icon: '🏁', zhuyin: 'ㄨㄟˊ ㄑㄧˊ（圍棋）',
+  intro: ['圍棋有黑子和白子，兩個人輪流下。', '黑棋先下，一次下一顆。', '棋子要下在「線和線交叉的地方」。', '下好的棋子不能移動。', '最後誰圍的地盤比較大，誰就贏！'],
+  demo: { board: ['.......', '.......', '..X....', '...O...', '....X..', '.......', '.......'] },
+  puzzles: [
+    { goal: 'point', board: ['.........', '.........', '.........', '.........', '....*....', '.........', '.........', '.........', '.........'], showMarks: true,
+      q: '黑棋先下！把黑子下在正中間閃亮的點（叫做「天元」）。', hint: '找找看，正中間有一個發亮的圓點。', ok: '下得好！這就是天元。' },
+    { goal: 'point', board: ['.........', '.........', '..*...*..', '.........', '.........', '.........', '..*...*..', '.........', '.........'], showMarks: true,
+      q: '棋盤上的小黑點叫「星位」。把黑子下在任何一個角上的星位。', hint: '看看四個角落附近，有發亮的點。', ok: '對了！角上的星位是開局常下的好地方。' },
+    { goal: 'choice', board: ['.....', '.X...', '..O..', '...X.', '.....'], choices: ['格子裡面', '線和線交叉的地方'], answer: 1,
+      q: '圍棋的棋子要下在哪裡？', hint: '看看棋盤上的棋子，它們都在線上喔。', ok: '答對了！棋子下在交叉點上。' },
+    { goal: 'choice', board: ['.....', '.....', '.....', '.....', '.....'], choices: ['黑棋', '白棋'], answer: 0,
+      q: '下圍棋的時候，誰先下？', hint: '「黑」先「白」後。', ok: '對！黑棋先下。' },
+    { goal: 'choice', board: ['.....', '..X..', '.XO..', '.....', '.....'], choices: ['可以', '不可以'], answer: 1,
+      q: '棋子下好以後，可以拿起來換位置嗎？', hint: '圍棋和象棋不一樣喔！', ok: '對！圍棋的棋子下好就不能移動。' }
+  ]
+},
+{
+  id: 'liberty', title: '氣', icon: '💨', zhuyin: 'ㄑㄧˋ',
+  intro: ['棋子旁邊「上、下、左、右」的空點，叫做「氣」。', '斜斜的不算喔！', '中間的棋子有 4 口氣，邊上有 3 口，角上只有 2 口。', '連在一起的棋子，氣要一起算。'],
+  demo: { board: ['.....', '..*..', '.*x*.', '..*..', '.....'], showMarks: true },
+  puzzles: [
+    { goal: 'liberties', board: ['.....', '.....', '..x..', '.....', '.....'],
+      q: '找出這顆黑子所有的「氣」，一個一個點出來！', hint: '看看黑子的上、下、左、右。', ok: '全部找到了！中間的棋子有 4 口氣。' },
+    { goal: 'liberties', board: ['..x..', '.....', '.....', '.....', '.....'],
+      q: '這顆黑子在邊上，點出它的氣。', hint: '上面是棋盤外面，沒有氣喔。', ok: '對！邊上的棋子只有 3 口氣。' },
+    { goal: 'countLibs', board: ['o....', '.....', '.....', '.....', '.....'],
+      q: '角落這顆白子有幾口氣？', hint: '角落只有兩個方向有路。', ok: '答對了！角上的棋子只有 2 口氣。' },
+    { goal: 'liberties', board: ['.....', '.....', '.xx..', '.....', '.....'],
+      q: '兩顆黑子連在一起，氣要一起算。點出它們所有的氣！', hint: '上面兩個、下面兩個、左右各一個。', ok: '太棒了！連在一起的兩顆子有 6 口氣。' },
+    { goal: 'countLibs', board: ['.....', '..X..', '.Xo..', '.....', '.....'],
+      q: '白子旁邊有黑子擋住了。這顆白子還剩幾口氣？', hint: '被黑子擋住的地方就不是氣了。', ok: '對！被擋住兩邊，只剩 2 口氣。' }
+  ]
+},
+{
+  id: 'capture', title: '提子', icon: '✋', zhuyin: 'ㄊㄧˊ ㄗˇ（提子）',
+  intro: ['如果一顆子的「氣」全部被對方堵住，', '它就被吃掉了，要從棋盤上拿起來。', '這叫做「提子」！', '提掉的子，就是你的戰利品。'],
+  puzzles: [
+    { goal: 'capture', board: ['.....', '..X..', '.XoX.', '.....', '.....'],
+      q: '白子只剩一口氣了，把它提掉！', hint: '白子下面還有一口氣，把它堵住。', ok: '提子成功！' },
+    { goal: 'capture', board: ['.Xo..', '..X..', '.....', '.....', '.....'],
+      q: '邊上的白子，把它提掉！', hint: '白子右邊還有一口氣。', ok: '好厲害！' },
+    { goal: 'capture', board: ['o....', 'X....', '.....', '.....', '.....'],
+      q: '角上的白子，提掉它！', hint: '角上的子只有兩口氣，已經被堵住一口了。', ok: '答對了！' },
+    { goal: 'capture', board: ['.....', '.XX..', 'Xoo..', '.XX..', '.....'],
+      q: '兩顆白子連在一起，一起提掉！', hint: '找找看兩顆白子最後一口氣在哪裡。', ok: '一次提兩顆，太棒了！' },
+    { goal: 'capture', board: ['.......', '.X...X.', 'XOX.XO.', '.......', '.......', '.......', '.......'],
+      q: '哪一顆白子可以馬上提掉？提提看！', hint: '數一數兩顆白子各有幾口氣，只剩一口氣的才能馬上提。', ok: '對！左邊的白子只剩一口氣。' },
+    { goal: 'capture', board: ['Xooo.', '.XXX.', '.....', '.....', '.....'],
+      q: '三顆白子排在邊上，把它們全部提掉！', hint: '三顆白子只剩右邊一口氣。', ok: '一次提三顆！好棒！' }
+  ]
+},
+{
+  id: 'forbidden', title: '禁著點', icon: '🚫', zhuyin: '不能下的地方',
+  intro: ['如果下下去，自己的子一口氣都沒有，', '又不能提掉對方的子，', '這個地方就「不能下」，叫做「禁著點」。', '可是，如果下下去可以提掉對方的子，就可以下喔！'],
+  demo: { board: ['.....', '..O..', '.O*O.', '..O..', '.....'], showMarks: true },
+  puzzles: [
+    { goal: 'illegal', board: ['.....', '..O..', '.O.O.', '..O..', '.....'],
+      q: '黑棋有一個地方不能下（禁著點），把它找出來！', hint: '被白子四面包圍的空點，黑子下進去就沒有氣了。', ok: '對！黑子下在那裡會沒有氣，是禁著點。' },
+    { goal: 'illegal', board: ['.O...', 'O....', '.....', '...X.', '.....'],
+      q: '這一題的禁著點在哪裡？', hint: '看看角落。', ok: '答對了！角落被兩顆白子堵住了。' },
+    { goal: 'capture', board: ['..X..', '.XOX.', 'XO.OX', '.XOX.', '..X..'],
+      q: '中間被白子圍住了，可是白子每一顆都只剩一口氣。黑棋可以下中間嗎？下下看！', hint: '下下去可以提掉白子，就不是禁著點。', ok: '對！下在中間可以一次提掉四顆白子，所以可以下！' },
+    { goal: 'illegal', board: ['.O.....', 'O.O....', '.O.....', '....X..', '...XOX.', '..XO.OX', '...XOX.'],
+      q: '棋盤上有兩個被白子圍住的空點，哪一個黑棋真的不能下？', hint: '右下角的白子都只剩一口氣，黑子下進去可以提子。左上角就不行了。', ok: '答對了！左上角是禁著點。' },
+    { goal: 'choice', board: ['.....', '..O..', '.O.O.', '..O..', '.....'], choices: ['禁著點', '星位'], answer: 0,
+      q: '下下去自己會沒有氣，又不能提子的地方，叫做什麼？', hint: '「禁」就是不可以的意思。', ok: '對！叫做禁著點。' }
+  ]
+},
+{
+  id: 'atari', title: '打吃', icon: '👊', zhuyin: 'ㄉㄚˇ ㄔ（打吃）',
+  intro: ['把對方的子堵到「只剩一口氣」，', '這叫做「打吃」。', '對方如果不趕快逃，', '下一步就可以把它提掉！'],
+  puzzles: [
+    { goal: 'atari', board: ['.....', '..X..', '.Xo..', '.....', '.....'],
+      q: '打吃這顆白子，讓它只剩一口氣！', hint: '白子還有兩口氣，堵住其中一口。', ok: '打吃！白子只剩一口氣了。' },
+    { goal: 'atari', board: ['..o..', '..X..', '.....', '.....', '.....'],
+      q: '邊上的白子，打吃它！', hint: '白子左右兩邊都還有氣。', ok: '很好！' },
+    { goal: 'atari', board: ['......', '..XX..', '..oo..', '..XX..', '......', '......'],
+      q: '打吃這兩顆白子！', hint: '兩顆白子左右兩邊各有一口氣。', ok: '打吃成功！' },
+    { goal: 'atari', board: ['o....', '.X...', '.....', '.....', '.....'],
+      q: '角上的白子，打吃它！', hint: '角上的子只有兩口氣。', ok: '答對了！' },
+    { goal: 'captureTarget', board: ['.......', '..XoX..', '.......', '.......', '.......', '.......', '.......'],
+      q: '用打吃把白子趕到邊邊，一直追，直到吃掉它！', hint: '從下面打吃，讓白子只能往邊上逃。', ok: '吃掉了！往邊邊趕，白子就跑不掉。' }
+  ]
+},
+{
+  id: 'escape', title: '逃跑和長氣', icon: '🏃', zhuyin: '長（ㄓㄤˇ）氣',
+  intro: ['自己的子被打吃（只剩一口氣）時，要趕快逃！', '往空的地方「長」出去，氣就會變多。', '要往空地多的方向跑，', '也可以提掉打吃你的子來逃跑。'],
+  puzzles: [
+    { goal: 'escape', board: ['.....', '..O..', '.OxO.', '.....', '.....'],
+      q: '黑子被打吃了！快逃！', hint: '只有一條路可以逃。', ok: '逃出來了！氣變成 3 口。' },
+    { goal: 'escape', board: ['.....', '.XO..', '.OxO.', '.X...', '.....'],
+      q: '黑子被打吃了，救救它！', hint: '可以往下長，也可以提掉旁邊只剩一口氣的白子。', ok: '救活了！' },
+    { goal: 'escape', board: ['.O...', '.OxO.', '.....', '.....', '.....'],
+      q: '黑子只剩兩口氣。往哪邊長，氣會變多？', hint: '往上會撞到白子和邊邊，往下比較空。', ok: '對！往空的地方長，氣就多了。' },
+    { goal: 'escape', board: ['.......', '.......', '..OOO..', '.Oxxx..', '..OOO..', '.......', '.......'],
+      q: '三顆黑子被打吃了，快逃！', hint: '找找看它們唯一的那口氣，往右邊長出去。', ok: '逃出來了！' },
+    { goal: 'escape', board: ['.......', '..XO...', '..OxO..', '..X....', '...O...', '.......', '.......'],
+      q: '黑子被打吃了，有一個好方法可以救它。', hint: '旁邊有一顆白子只剩一口氣喔！', ok: '對！提掉打吃你的白子，黑子就安全了。' }
+  ]
+},
+{
+  id: 'double', title: '雙打吃', icon: '✌️', zhuyin: 'ㄕㄨㄤ ㄉㄚˇ ㄔ（雙打吃）',
+  intro: ['一步棋，同時打吃兩塊對方的子，', '這叫做「雙打吃」。', '對方只能救一塊，', '另一塊就被你吃掉了！'],
+  puzzles: [
+    { goal: 'doubleAtari', board: ['.....', '.X.X.', '.O.O.', '.X.X.', '.....'],
+      q: '找一個點，同時打吃兩顆白子！', hint: '兩顆白子中間的那個點。', ok: '雙打吃！白子只能救一顆。', ok2: '吃掉了！雙打吃好厲害！' },
+    { goal: 'doubleAtari', board: ['.O.O.', '.XXX.', '.....', '.....', '.....'],
+      q: '邊上的兩顆白子，用雙打吃！', hint: '兩顆白子中間，邊上的那一點。', ok: '雙打吃成功！', ok2: '吃到了！' },
+    { goal: 'doubleAtari', board: ['......', '..X...', '..OX..', '...OX.', '......', '......'],
+      q: '兩顆白子斜斜的連著，找出雙打吃的點！', hint: '下在兩顆白子都碰得到的地方。', ok: '雙打吃！', ok2: '吃到一顆了！' },
+    { goal: 'doubleAtari', board: ['......', '.XXXX.', 'XOO.OX', '.X....', '......', '......'],
+      q: '左邊兩顆白子、右邊一顆白子，一步打吃它們！', hint: '兩塊白子中間的空點。', ok: '雙打吃！', ok2: '吃到了！' }
+  ]
+},
+{
+  id: 'ladder', title: '征子', icon: '🪜', zhuyin: 'ㄓㄥ ㄗˇ（征子）',
+  intro: ['一直打吃、一直打吃，', '把對方的子像走樓梯一樣趕到邊邊吃掉，', '這叫做「征子」。', '打吃的方向很重要：要讓對方每次逃完都只剩兩口氣！'],
+  puzzles: [
+    { goal: 'captureTarget', board: ['.......', '.......', '..X....', '.Xo....', '...X...', '.......', '.......'],
+      q: '用征子吃掉白子！一直打吃，不要讓它逃走。', hint: '先打吃，讓白子往黑子多的地方逃。', ok: '征子成功！白子被趕到邊邊吃掉了。' },
+    { goal: 'captureTarget', board: E9.slice(0, 3).concat(['....X....', '...Xo....', '.....X...', '.........', '.O.......', '.........']),
+      q: '左下角有一顆白子會來接應。換個方向征子，吃掉白子！', hint: '從下面打吃，讓白子往右上角逃。', ok: '對！選對方向，征子就成功了。' },
+    { goal: 'captureTarget', board: ['.........', '......O..', '.........', '....X....', '...Xo....', '.....X...', '.........', '.........', '.........'],
+      q: '這次右上角有白子接應。要往哪個方向征子呢？', hint: '從右邊打吃，讓白子往左下角逃。', ok: '征子成功！你會看方向了。' },
+    { goal: 'choice', board: ['.........', '......O..', '.........', '....X....', '...XO....', '.....X...', '.........', '.........', '.........'], choices: ['往有白子接應的方向，一直追', '換一個方向，或用別的方法'], answer: 1,
+      q: '如果白子逃跑的路上有自己人接應，征子就會失敗。這時候要怎麼做？', hint: '有人接應，追過去會被救走喔。', ok: '對！征子不成立的時候，不要硬追。' }
+  ]
+},
+{
+  id: 'net', title: '枷吃', icon: '🥅', zhuyin: 'ㄐㄧㄚ ㄔ（枷吃）',
+  intro: ['有時候直接打吃，對方會逃走。', '這時候不要打吃，', '在對方逃跑的路口「斜斜地」罩住它，', '像用網子蓋住一樣，它怎麼跑都跑不掉，這叫「枷吃」！'],
+  puzzles: [
+    { goal: 'captureTarget', board: ['.........', '.O.....O.', '.........', '....XX...', '...Xo....', '...X.....', '.........', '.O.....O.', '.........'],
+      q: '直接打吃，白子會逃走。用「枷」把白子罩住吃掉！', hint: '下在白子斜斜的右下方，把兩條路一起蓋住。', ok: '枷吃成功！白子怎麼跑都跑不掉。' },
+    { goal: 'captureTarget', board: ['.........', '.O.....O.', '.........', '...XX....', '....oX...', '.....X...', '.........', '.O.....O.', '.........'],
+      q: '用枷吃把這顆白子關起來！', hint: '白子想往左下跑，在它斜斜的左下方罩住。', ok: '關起來了！' },
+    { goal: 'captureTarget', board: ['.........', '.O.....O.', '.........', '...X.....', '...Xo....', '....XX...', '.........', '.O.....O.', '.........'],
+      q: '白子還有兩口氣，找出罩住它的那一點！', hint: '白子的兩口氣（上面和右邊）都通往右上方，在那裡斜斜罩住。', ok: '漂亮的枷吃！' }
+  ]
+},
+{
+  id: 'tiger', title: '虎口', icon: '🐯', zhuyin: 'ㄏㄨˇ ㄎㄡˇ（虎口）',
+  intro: ['三顆同色的子圍成一個「ㄇ」字形的開口，', '中間的空點就是「虎口」。', '對方下進虎口，只剩一口氣，馬上被吃掉！', '用虎口可以保護自己的斷點。'],
+  demo: { board: ['.....', '..X..', '.X*..', '..X..', '.....'], showMarks: true },
+  puzzles: [
+    { goal: 'capture', board: ['.....', '..X..', '.XO..', '..X..', '.....'],
+      q: '白子跑進黑棋的虎口了，吃掉它！', hint: '白子只剩右邊一口氣。', ok: '吃掉了！跑進虎口真危險。' },
+    { goal: 'point', board: ['.....', '..O..', '.O*..', '..O..', '.....'],
+      q: '白棋有一個虎口，黑子下進去會被吃掉。虎口在哪裡？點出來！', hint: '三顆白子圍住的那個空點。', ok: '對！那裡就是虎口，不要下進去喔。' },
+    { goal: 'tiger', board: ['......', '..X...', '.X*.O.', '...O..', '......', '......'],
+      q: '星星的地方是黑棋的斷點，下一個「虎口」保護它！', hint: '在斷點的下面或右邊下一顆，和另外兩顆黑子圍成ㄇ字形。', ok: '虎口做好了！白子不敢切斷了。' },
+    { goal: 'tiger', board: ['......', '......', '..O...', '......', '.X*X..', '......'],
+      q: '兩顆黑子中間有空隙（星星），白棋想切進來。下一顆子，把星星變成虎口！', hint: '在星星的上面或下面下一顆，三顆黑子就圍成ㄇ字形。', ok: '好虎口！白子進來就會被吃。' },
+    { goal: 'capture', board: ['......', '......', '..O...', '......', '.XOX..', '..X...'],
+      q: '白子硬要切斷，跑進虎口裡了。把它吃掉！', hint: '白子只剩一口氣。', ok: '吃掉了！虎口保護了黑棋。' }
+  ]
+},
+{
+  id: 'eyes', title: '眼與活棋', icon: '👀', zhuyin: 'ㄧㄢˇ（眼）',
+  intro: ['被自己的子圍起來的空點，叫做「眼」。', '有兩個「真眼」的棋，對方永遠吃不掉，是「活棋」。', '只有一個眼的棋，會被吃掉，是「死棋」。', '如果眼的斜角被對方佔住，就變成「假眼」，不算數！'],
+  puzzles: [
+    { goal: 'trueEye', board: ['X.XXX.X', 'XXX.OXX', '.OOOOOO', '.......', '.......', '.......', '.......'],
+      q: '黑棋有兩個像眼的空點，哪一個是「真眼」？', hint: '看看眼的斜角，有沒有被白子佔住。', ok: '答對了！斜角都是黑子，是真眼。' },
+    { goal: 'falseEye', board: ['X.XXX.X', 'XXX.OXX', '.OOOOOO', '.......', '.......', '.......', '.......'],
+      q: '那「假眼」在哪裡？', hint: '斜角有白子的那個眼。', ok: '對！斜角被白子佔住，是假眼。' },
+    { goal: 'live', board: ['......', 'OOOOO.', 'xXXXO.', '***XO.', 'XXXXO.', 'OOOOO.'],
+      q: '黑棋被白棋包圍了！下一步做出兩個眼，讓黑棋活起來！', hint: '下在三個空點的正中間。', ok: '兩個真眼，活棋了！' },
+    { goal: 'kill', board: ['......', 'XXXXX.', 'oOOOX.', '***OX.', 'OOOOX.', 'XXXXX.'],
+      q: '換你當殺手！不讓白棋做出兩個眼。', hint: '白棋想下哪裡做兩個眼，你就先下那裡。', ok: '白棋只剩一個眼，是死棋了！' },
+    { goal: 'live', board: ['......', '......', 'OOOO..', 'xXXO..', '*XXO..', '**XO..'],
+      q: '角上的黑棋，下哪裡可以做出兩個眼？', hint: '三個空點彎成一個轉角，下在轉角的地方。', ok: '活了！角上的兩個真眼。' }
+  ]
+},
+{
+  id: 'ko', title: '劫', icon: '🔁', zhuyin: 'ㄐㄧㄝˊ（劫）',
+  intro: ['有一種形狀，黑白雙方可以互相提一顆子，', '提來提去永遠不會停，這叫做「劫」。', '規則：被提掉以後，不能馬上提回來！', '要先在別的地方下一手（叫做「找劫材」），才可以提回來。'],
+  puzzles: [
+    { goal: 'capture', board: ['.....', '.XO..', 'XO.O.', '.XO..', '.....'],
+      q: '提掉一顆白子！提完看看形狀。', hint: '左邊被包圍的白子只剩一口氣。', ok: '提掉了！這個形狀就是「劫」。' },
+    { goal: 'illegal', board: ['.....', '.XO..', 'XO.O.', '.XO..', '.....'], ko: [2, 2],
+      q: '白棋剛剛提了一顆黑子（打劫）。現在黑棋有一個地方不能下，是哪裡？', hint: '被提掉的地方，不能馬上提回來。', ok: '對！這是劫，要先在別的地方下一手。' },
+    { goal: 'choice', board: ['.....', '.XO..', 'XO.O.', '.XO..', '.....'], choices: ['馬上提回來', '先在別的地方下一手，再提回來'], answer: 1,
+      q: '被對方提了劫以後，要怎麼做？', hint: '想想劫的規則。', ok: '對！先找劫材，再提回來。' },
+    { goal: 'capture', board: ['.....', '.XO..', 'XO.O.', '.XO..', 'X..O.'],
+      q: '黑棋在別的地方下了一手，白棋也回應了。現在可以提回來囉！', hint: '已經隔了一手，可以提劫了。', ok: '提回來了！這就是打劫。' }
+  ]
+},
+{
+  id: 'count', title: '數地與勝負', icon: '🔢', zhuyin: 'ㄕㄨˇ ㄉㄧˋ（數地）',
+  intro: ['棋下完了（兩個人都「停一手」），就要數一數。', '自己的「棋子」加上圍起來的「空點（地）」，就是分數。', '白棋因為後下，會多加幾分，叫做「貼目」。', '分數比較多的就贏了！'],
+  puzzles: [
+    { goal: 'countTerritory', board: ['..XO.', '..XO.', '..XO.', '..XO.', '..XO.'],
+      q: '黑棋圍起來的空點（地）有幾個？', hint: '數一數黑子左邊的空點。', ok: '答對了！' },
+    { goal: 'countArea', board: ['..XO.', '..XO.', '..XO.', '..XO.', '..XO.'], offset: 2,
+      q: '黑棋的分數 ＝ 黑子 ＋ 黑地。一共幾分？', hint: '5 顆黑子，再加上 10 個空點。', ok: '對！' },
+    { goal: 'winner', board: ['.XO..', '.XO..', '.XXOO', '..XO.', '..XO.'], komi: 0,
+      q: '數數看，誰贏了？（這題不算貼目）', hint: '黑棋：棋子＋地；白棋：棋子＋地，比比看。', ok: '答對了！黑棋 13 分，白棋 12 分。' },
+    { goal: 'choice', board: ['XXXO.', '.OXO.', 'XXXO.', '..XO.', '..XO.'], choices: ['拿掉，當成對方的地', '留著，算自己的'], answer: 0,
+      q: '黑棋地盤裡面那顆白子已經跑不出去了（死子）。數地的時候怎麼辦？', hint: '死掉的子，最後會被提掉。', ok: '對！死子拿掉，那裡算黑棋的地。' },
+    { goal: 'choice', board: ['.....', '.....', '.....', '.....', '.....'], choices: ['貼目', '打吃'], answer: 0,
+      q: '白棋後下比較吃虧，所以數地的時候白棋會多加幾分，這叫做什麼？', hint: '「貼」給白棋的分數。', ok: '答對了！' }
+  ]
+},
+{
+  id: 'opening', title: '布局小常識', icon: '🏆', zhuyin: '金角銀邊草肚皮',
+  intro: ['圍地的時候，在「角」上最省力，', '「邊」上第二，「中間」最費力。', '所以開局要先佔角，再佔邊，最後才往中間。', '記住口訣：「金角、銀邊、草肚皮」！'],
+  puzzles: [
+    { goal: 'point', board: ['.........', '.........', '..**.**..', '..**.**..', '.........', '..**.**..', '..**.**..', '.........', '.........'],
+      q: '第一手要下哪裡比較好？在任何一個「角」上，第三、四條線的地方下一顆！', hint: '「金角」！從邊邊數過來第三或第四條線，靠近角落。', ok: '對！先佔角最划算。' },
+    { goal: 'choice', board: E9, choices: ['角', '邊', '中間'], answer: 0,
+      q: '「金角銀邊草肚皮」：哪裡最容易圍地？', hint: '「金」最值錢！', ok: '對！角最值錢。' },
+    { goal: 'choice', board: ['X........'].concat(E9.slice(1)), choices: ['很好', '不太好，太低了，圍不到地'], answer: 1,
+      q: '第一手下在最角落、最邊邊的第一線，好不好？', hint: '下在第一線，圍到的地很小。', ok: '對！第一線太低了，第三、四線比較好。' },
+    { goal: 'point', board: ['.........', '.........', '..X...O..', '.........', '.........', '..**.....', '..**..X..', '.........', '.........'],
+      q: '還有一個空的角，快去佔！', hint: '左下角還沒有人。', ok: '好棋！四個角都有人了。' },
+    { goal: 'choice', board: ['.........', '.........', '..X...O..', '.........', '.........', '.........', '..O...X..', '.........', '.........'], choices: ['邊', '中間'], answer: 0,
+      q: '四個角都佔好了，下一步通常要下哪裡？', hint: '金角、銀邊、草肚皮，角之後是……', ok: '對！角之後佔邊。' }
+  ]
+}
+];
+var API = { LESSONS: LESSONS };
+if (typeof module !== 'undefined' && module.exports) module.exports = API;
+root.GoLessons = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ---- app.js ---- */
+/* 小棋士圍棋教室 — UI */
+(function () {
+'use strict';
+var E = window.GoEngine, AI = window.GoAI, PZ = window.GoPuzzle, LESSONS = window.GoLessons.LESSONS;
+var BLACK = E.BLACK, WHITE = E.WHITE;
+var $ = function (s, el) { return (el || document).querySelector(s); };
+function h(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/* ---------------- storage ---------------- */
+var KEY = 'goKids.v1';
+var store = { stars: {}, unlockAll: false, sound: true, autoSpeak: false,
+  game: { size: 19, level: 0, color: BLACK, handicap: 0, komi: 6.5, atariAlert: true, selfAtariWarn: true, tapConfirm: null, showCoords: false } };
+try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { for (var k in saved) if (k !== 'game') store[k] = saved[k]; if (saved.game) for (var g in saved.game) store.game[g] = saved.game[g]; } } catch (e) {}
+store.game.size = 19;
+if (store.game.komi === 7.5 || store.game.komi === 5.5) store.game.komi = 6.5;
+if (store.game.tapConfirm == null) store.game.tapConfirm = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+
+/* ---------------- sound ---------------- */
+var actx = null;
+function ac() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
+function tone(freq, t0, dur, type, vol, slide) {
+  var a = ac(); if (!a || !store.sound) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + t0;
+  o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  g.gain.setValueAtTime(vol || 0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+var sfx = {
+  place: function () { tone(520, 0, 0.09, 'triangle', 0.35, 180); },
+  capture: function () { tone(880, 0, 0.08, 'square', 0.12); tone(1180, 0.08, 0.1, 'square', 0.12); },
+  good: function () { [523, 659, 784, 1046].forEach(function (f, i) { tone(f, i * 0.09, 0.18, 'triangle', 0.25); }); },
+  bad: function () { tone(300, 0, 0.16, 'sawtooth', 0.12); tone(220, 0.16, 0.22, 'sawtooth', 0.12); },
+  win: function () { [523, 659, 784, 659, 784, 1046].forEach(function (f, i) { tone(f, i * 0.13, 0.22, 'triangle', 0.28); }); },
+  warn: function () { tone(740, 0, 0.12, 'square', 0.1); tone(740, 0.18, 0.12, 'square', 0.1); }
+};
+
+/* ---------------- speech (朗讀) ---------------- */
+var zhVoice = null;
+function pickVoice() {
+  if (!window.speechSynthesis) return;
+  var vs = speechSynthesis.getVoices();
+  zhVoice = vs.filter(function (v) { return /zh[-_]TW/i.test(v.lang); })[0] || vs.filter(function (v) { return /^zh/i.test(v.lang); })[0] || null;
+}
+if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  var clean = String(text).replace(/<[^>]+>/g, '').replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, '').replace(/[「」]/g, '');
+  var u = new SpeechSynthesisUtterance(clean); u.lang = 'zh-TW'; u.rate = 0.9; if (zhVoice) u.voice = zhVoice;
+  speechSynthesis.speak(u);
+}
+function maybeSpeak(text) { if (store.autoSpeak) speak(text); }
+
+/* ---------------- confetti ---------------- */
+function confetti(n) {
+  var em = ['🎉', '⭐', '🌟', '🎊', '✨', '⚫', '⚪', '🏅'];
+  for (var i = 0; i < (n || 24); i++) {
+    var d = document.createElement('div'); d.className = 'confetti';
+    d.textContent = em[(Math.random() * em.length) | 0];
+    d.style.left = (Math.random() * 100) + 'vw'; d.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+    d.style.animationDelay = (Math.random() * 0.4) + 's';
+    document.body.appendChild(d);
+    setTimeout(function (x) { x.remove(); }.bind(null, d), 3800);
+  }
+}
+
+/* ---------------- board renderer (SVG) ---------------- */
+var S = 40;
+var boardCounter = 0;
+function Board(container, onTap) {
+  this.uid = 'bd' + (++boardCounter);
+  this.el = container; this.onTap = onTap; this.n = 9; this.hover = -1; this.allowHover = false; this.hoverColor = BLACK;
+  var self = this;
+  container.addEventListener('pointerup', function (ev) {
+    var i = self.idxFromEvent(ev); if (i >= 0 && self.onTap) self.onTap(i, ev);
+  });
+  container.addEventListener('pointermove', function (ev) {
+    if (ev.pointerType !== 'mouse' || !self.allowHover) return;
+    var i = self.idxFromEvent(ev); if (i !== self.hover) { self.hover = i; self.drawHover(); }
+  });
+  container.addEventListener('pointerleave', function () { self.hover = -1; self.drawHover(); });
+}
+Board.prototype.idxFromEvent = function (ev) {
+  var svg = this.el.querySelector('svg'); if (!svg) return -1;
+  var r = svg.getBoundingClientRect(), n = this.n;
+  var ox = this._ox || 0, oy = this._oy || 0;
+  var size = parseFloat(svg.viewBox.baseVal ? svg.viewBox.baseVal.width : (n + 1) * S) || ((n + 1) * S);
+  var x = (ev.clientX - r.left) / r.width * size - ox, y = (ev.clientY - r.top) / r.height * size - oy;
+  var c = Math.round(x / S - 1), rr = Math.round(y / S - 1);
+  if (c < 0 || rr < 0 || c >= n || rr >= n) return -1;
+  var dx = x - (c + 1) * S, dy = y - (rr + 1) * S;
+  var hit = n >= 19 ? S * 0.72 : S * 0.62;
+  if (dx * dx + dy * dy > hit * hit) return -1;
+  return rr * n + c;
+};
+function xy(n, i) { return [(i % n + 1) * S, (((i / n) | 0) + 1) * S]; }
+function xyOff(board, n, i) { var c = xy(n, i); return [c[0] + (board._ox || 0), c[1] + (board._oy || 0)]; }
+/* opts: {pos, last, marks:[{i,type}], newStones:Set, fading:[{i,color}], dead:Set, owner, rings:[{i,color}], hint:[i]} */
+Board.prototype.render = function (o) {
+  this.last = o; var n = o.pos.n; this.n = n; var U = this.uid;
+  var pad = n >= 19 ? 1.35 : 1;
+  var size = (n + 1 + (o.coords ? 0.6 : 0)) * S, p = [];
+  var ox = (o.coords ? 0.7 : 0) * S, oy = (o.coords ? 0.2 : 0) * S;
+  p.push('<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">');
+  p.push('<defs><radialGradient id="' + U + 'gb" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#777"/><stop offset=".55" stop-color="#151515"/><stop offset="1" stop-color="#000"/></radialGradient>' +
+    '<radialGradient id="' + U + 'gw" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#eee"/><stop offset="1" stop-color="#c8c8c8"/></radialGradient>' +
+    '<linearGradient id="' + U + 'wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2c47e"/><stop offset="1" stop-color="#dfa85c"/></linearGradient></defs>');
+  p.push('<rect x="2" y="2" width="' + (size - 4) + '" height="' + (size - 4) + '" rx="' + (n >= 19 ? 10 : 18) + '" fill="url(#' + U + 'wood)" stroke="#b9853f" stroke-width="3"/>');
+  var lw = n <= 9 ? 2 : n >= 19 ? 1.1 : 1.6;
+  for (var k = 0; k < n; k++) {
+    var a = (k + 1) * S;
+    p.push('<line x1="' + (S + ox) + '" y1="' + (a + oy) + '" x2="' + (n * S + ox) + '" y2="' + (a + oy) + '" stroke="#5a3d1c" stroke-width="' + (k === 0 || k === n - 1 ? lw + 0.8 : lw) + '"/>');
+    p.push('<line x1="' + (a + ox) + '" y1="' + (S + oy) + '" x2="' + (a + ox) + '" y2="' + (n * S + oy) + '" stroke="#5a3d1c" stroke-width="' + (k === 0 || k === n - 1 ? lw + 0.8 : lw) + '"/>');
+  }
+  var starR = n >= 19 ? 3.2 : 5;
+  E.starPoints(n).forEach(function (i) { var c = xy(n, i); p.push('<circle cx="' + (c[0] + ox) + '" cy="' + (c[1] + oy) + '" r="' + starR + '" fill="#5a3d1c"/>'); });
+  if (o.coords) {
+    var letters = 'ABCDEFGHJKLMNOPQRST';
+    for (var ci = 0; ci < n; ci++) {
+      var lx = (ci + 1) * S + ox, ly = S * 0.55 + oy;
+      p.push('<text x="' + lx + '" y="' + ly + '" font-size="11" text-anchor="middle" fill="#7a5a2a" font-family="sans-serif">' + letters[ci] + '</text>');
+      p.push('<text x="' + (S * 0.4 + ox) + '" y="' + ((ci + 1) * S + oy + 4) + '" font-size="11" text-anchor="middle" fill="#7a5a2a" font-family="sans-serif">' + (n - ci) + '</text>');
+    }
+  }
+  this._ox = ox; this._oy = oy;
+  var X = function (i) { var c = xy(n, i); return [c[0] + ox, c[1] + oy]; };
+  // territory (scoring)
+  if (o.owner) for (var t = 0; t < n * n; t++) {
+    var own = o.owner[t]; if (!own) continue;
+    if (o.pos.b[t] && !(o.dead && o.dead.has(t))) continue;
+    var c2 = X(t);
+    var tw = n >= 19 ? 10 : 16; p.push('<rect x="' + (c2[0] - tw/2) + '" y="' + (c2[1] - tw/2) + '" width="' + tw + '" height="' + tw + '" rx="2" fill="' + (own === BLACK ? '#111' : '#fff') + '" stroke="#555" stroke-width="1" opacity=".85"/>');
+  }
+  // marks under stones
+  (o.marks || []).forEach(function (m) {
+    var c = X(m.i);
+    if (m.type === 'star') p.push('<g class="hint-ring"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="13" fill="#fff59d" stroke="#ffb300" stroke-width="3"/><text x="' + c[0] + '" y="' + (c[1] + 6) + '" font-size="17" text-anchor="middle">⭐</text></g>');
+    if (m.type === 'preview') p.push('<circle class="hint-ring" cx="' + c[0] + '" cy="' + c[1] + '" r="' + (S * 0.46) + '" fill="url(#' + U + (o.pos.toPlay === BLACK ? 'gb' : 'gw') + ')" opacity=".5" stroke="#ff9800" stroke-width="3"/>');
+    if (m.type === 'lib') p.push('<circle class="st-pop" cx="' + c[0] + '" cy="' + c[1] + '" r="11" fill="#3cc47c" stroke="#fff" stroke-width="3"/>');
+    if (m.type === 'good') p.push('<circle class="st-pop" cx="' + c[0] + '" cy="' + c[1] + '" r="15" fill="none" stroke="#3cc47c" stroke-width="6"/>');
+    if (m.type === 'nope') p.push('<g class="st-pop"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="15" fill="#fff" stroke="#e04848" stroke-width="4"/><line x1="' + (c[0] - 9) + '" y1="' + (c[1] - 9) + '" x2="' + (c[0] + 9) + '" y2="' + (c[1] + 9) + '" stroke="#e04848" stroke-width="4"/></g>');
+  });
+  // stones
+  for (var i = 0; i < n * n; i++) {
+    var v = o.pos.b[i]; if (!v) continue;
+    var c3 = X(i), dead = o.dead && o.dead.has(i);
+    var cls = o.newStones && o.newStones.has(i) ? ' class="st-pop"' : '';
+    p.push('<g' + cls + ' opacity="' + (dead ? 0.45 : 1) + '"><circle cx="' + (c3[0] + 1.5) + '" cy="' + (c3[1] + 2.5) + '" r="' + (S * 0.46) + '" fill="rgba(0,0,0,.25)"/>' +
+      '<circle cx="' + c3[0] + '" cy="' + c3[1] + '" r="' + (S * 0.46) + '" fill="url(#' + U + (v === BLACK ? 'gb' : 'gw') + ')" stroke="' + (v === BLACK ? '#000' : '#999') + '" stroke-width="1"/></g>');
+    if (dead) p.push('<g stroke="' + (v === BLACK ? '#fff' : '#e04848') + '" stroke-width="3.5"><line x1="' + (c3[0] - 8) + '" y1="' + (c3[1] - 8) + '" x2="' + (c3[0] + 8) + '" y2="' + (c3[1] + 8) + '"/><line x1="' + (c3[0] + 8) + '" y1="' + (c3[1] - 8) + '" x2="' + (c3[0] - 8) + '" y2="' + (c3[1] + 8) + '"/></g>');
+  }
+  (o.fading || []).forEach(function (f) {
+    var c = X(f.i);
+    p.push('<circle class="st-fade" cx="' + c[0] + '" cy="' + c[1] + '" r="' + (S * 0.46) + '" fill="url(#' + U + (f.color === BLACK ? 'gb' : 'gw') + ')" style="transform-box:fill-box;transform-origin:center"/>');
+  });
+  // marks on stones
+  (o.marks || []).forEach(function (m) {
+    var c = X(m.i), v = o.pos.b[m.i];
+    if (m.type === 'target') p.push('<circle cx="' + c[0] + '" cy="' + c[1] + '" r="6" fill="' + (v === BLACK ? '#ffd54f' : '#ff7a59') + '"/>');
+    if (m.type === 'wrong') p.push('<g class="wrong-x"><line x1="' + (c[0] - 11) + '" y1="' + (c[1] - 11) + '" x2="' + (c[0] + 11) + '" y2="' + (c[1] + 11) + '" stroke="#e04848" stroke-width="6" stroke-linecap="round"/><line x1="' + (c[0] + 11) + '" y1="' + (c[1] - 11) + '" x2="' + (c[0] - 11) + '" y2="' + (c[1] + 11) + '" stroke="#e04848" stroke-width="6" stroke-linecap="round"/></g>');
+  });
+  if (o.last != null && o.last >= 0 && o.pos.b[o.last]) {
+    var lc = X(o.last);
+    p.push('<circle cx="' + lc[0] + '" cy="' + lc[1] + '" r="7" fill="none" stroke="' + (o.pos.b[o.last] === BLACK ? '#fff' : '#000') + '" stroke-width="3"/>');
+  }
+  (o.rings || []).forEach(function (r) {
+    var c = X(r.i);
+    p.push('<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + (S * 0.5) + '" fill="none" stroke="' + r.color + '" stroke-width="4" stroke-dasharray="6 4"/>');
+  });
+  (o.hint || []).forEach(function (i) {
+    var c = X(i), hr = n >= 19 ? S * 0.38 : S * 0.44, fs = n >= 19 ? 14 : 20;
+    p.push('<g class="hint-ring"><circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + hr + '" fill="rgba(255,213,79,.55)" stroke="#ff9800" stroke-width="' + (n>=19?3:4) + '"/><text x="' + c[0] + '" y="' + (c[1] + fs*0.35) + '" font-size="' + fs + '" text-anchor="middle">💡</text></g>');
+  });
+  p.push('<g class="hover-layer"></g></svg>');
+  this.el.innerHTML = p.join('');
+  this.drawHover();
+};
+Board.prototype.drawHover = function () {
+  var g = this.el.querySelector('.hover-layer'); if (!g) return;
+  var i = this.hover, o = this.last;
+  if (i < 0 || !this.allowHover || !o || o.pos.b[i]) { g.innerHTML = ''; return; }
+  var c = xy(this.n, i), ox = this._ox || 0, oy = this._oy || 0;
+  g.innerHTML = '<circle cx="' + (c[0] + ox) + '" cy="' + (c[1] + oy) + '" r="' + (S * 0.46) + '" fill="url(#' + this.uid + (this.hoverColor === BLACK ? 'gb' : 'gw') + ')" opacity=".45" pointer-events="none"/>';
+};
+
+/* ---------------- navigation ---------------- */
+var current = 'home';
+function show(name, title) {
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('active', s.id === 'scr-' + name); });
+  current = name;
+  $('#top-title').textContent = title || '小棋士圍棋教室';
+  $('#btn-home').style.visibility = name === 'home' ? 'hidden' : 'visible';
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  window.scrollTo(0, 0);
+}
+function sayBtn(text) { return '<button class="say" data-say="' + h(text) + '" title="唸給我聽">🔊</button>'; }
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest('[data-say]'); if (b) speak(b.getAttribute('data-say'));
+});
+
+/* ---------------- home ---------------- */
+function totalStars() { var s = 0; LESSONS.forEach(function (L) { s += store.stars[L.id] || 0; }); return s; }
+function doneCount() { return LESSONS.filter(function (L) { return store.stars[L.id] > 0; }).length; }
+function renderHome() {
+  $('#home-progress').textContent = '已完成 ' + doneCount() + ' / ' + LESSONS.length + ' 關　⭐ ' + totalStars();
+  show('home');
+}
+
+/* ---------------- lesson map ---------------- */
+function unlocked(i) { return store.unlockAll || i === 0 || (store.stars[LESSONS[i - 1].id] || 0) > 0; }
+function renderMap() {
+  var html = '';
+  var nextIdx = LESSONS.findIndex(function (L, i) { return unlocked(i) && !store.stars[L.id]; });
+  LESSONS.forEach(function (L, i) {
+    var st = store.stars[L.id] || 0, lock = !unlocked(i);
+    html += '<button class="lesson-card' + (lock ? ' locked' : '') + (i === nextIdx ? ' next' : '') + '" data-lesson="' + i + '">' +
+      '<span class="no">' + (i + 1) + '</span><div class="ic">' + L.icon + '</div><div class="nm">' + h(L.title) + '</div>' +
+      '<div class="zy">' + h(L.zhuyin || '') + '</div><div class="st">' + '★★★'.slice(0, st) + '<span style="color:#ddd">' + '★★★'.slice(0, 3 - st) + '</span></div></button>';
+  });
+  $('#map').innerHTML = html;
+  var done = doneCount();
+  $('#map-banner').innerHTML = done === LESSONS.length ? '🎓 全部過關了！你是小棋士了！快去<b>跟電腦下棋</b>吧！' : '一關一關往下走，過關就會打開下一關喔！⭐ 越少錯越多星星。';
+  show('map', '學習關卡');
+}
+document.addEventListener('click', function (ev) {
+  var c = ev.target.closest('[data-lesson]'); if (!c) return;
+  var i = +c.getAttribute('data-lesson');
+  if (!unlocked(i)) { sfx.bad(); toast('要先完成前面的關卡喔！'); return; }
+  openLesson(i);
+});
+function toast(msg) {
+  var t = $('#toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(toast.tm);
+  toast.tm = setTimeout(function () { t.style.opacity = 0; }, 1800);
+}
+
+/* ---------------- lesson ---------------- */
+var L = null; // {i, lesson, p, st, mistakes, hintLevel, busy}
+var lessonBoard = null;
+function openLesson(i) {
+  L = { i: i, lesson: LESSONS[i], p: -1, mistakes: 0 };
+  renderIntro();
+}
+function renderIntro() {
+  var les = L.lesson, text = les.intro.join('');
+  $('#lesson-body').innerHTML =
+    '<div class="bubble"><div class="who">🐼</div><div class="txt intro-lines">' + les.intro.map(function (x) { return '<p>' + h(x) + '</p>'; }).join('') + '</div>' + sayBtn(text) + '</div>' +
+    (les.demo ? '<div class="board-wrap" id="demo-board"></div>' : '') +
+    '<div class="btn-row"><button class="btn green" id="start-puzzles" style="font-size:26px;padding:16px 30px">開始練習 ▶</button></div>';
+  show('lesson', (L.i + 1) + '. ' + les.title);
+  if (les.demo) {
+    var f = E.fromRows(les.demo.board), b = new Board($('#demo-board'));
+    b.render({ pos: f.pos, marks: les.demo.showMarks ? f.marks.map(function (i) { return { i: i, type: 'lib' }; }) : [] });
+  }
+  $('#start-puzzles').onclick = function () { L.p = 0; renderPuzzle(); };
+  maybeSpeak(text);
+}
+function renderPuzzle() {
+  var les = L.lesson, pz = les.puzzles[L.p];
+  L.st = PZ.setup(pz); L.hintLevel = 0; L.busy = false; L.marks = []; L.hint = []; L.lastMove = -1;
+  var dots = les.puzzles.map(function (_, k) { return '<i class="' + (k < L.p ? 'done' : k === L.p ? 'cur' : '') + '"></i>'; }).join('');
+  var isChoice = !!L.st.choice;
+  $('#lesson-body').innerHTML =
+    '<div class="dots">' + dots + '</div>' +
+    '<div class="lesson-layout"><div><div class="board-wrap" id="pz-board"></div></div><div>' +
+    '<div class="bubble"><div class="who">🐼</div><div class="txt" id="pz-q">' + h(pz.q) + '</div>' + sayBtn(pz.q) + '</div>' +
+    (isChoice ? '<div class="choices" id="pz-choices">' + L.st.choice.options.map(function (o, k) { return '<button class="choice" data-choice="' + k + '">' + h(o) + '</button>'; }).join('') + '</div>' : '') +
+    '<div class="feedback" id="pz-fb"></div>' +
+    '<div class="btn-row"><button class="btn orange" id="pz-hint">💡 提示</button><button class="btn gray" id="pz-reset">🔄 重來</button>' +
+    '<button class="btn green" id="pz-next" style="display:none">下一題 ➡️</button></div></div></div>';
+  lessonBoard = new Board($('#pz-board'), onPuzzleTap);
+  lessonBoard.allowHover = !isChoice;
+  drawPuzzle();
+  $('#pz-hint').onclick = puzzleHint;
+  $('#pz-reset').onclick = function () { renderPuzzle(); };
+  $('#pz-next').onclick = nextPuzzle;
+  if (isChoice) document.querySelectorAll('[data-choice]').forEach(function (b) {
+    b.onclick = function () {
+      if (L.st.done) return;
+      var k = +b.getAttribute('data-choice'), r = PZ.judgeChoice(L.st, k);
+      if (r.ok) { b.classList.add('right'); success(); }
+      else { b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); fail(); }
+    };
+  });
+  maybeSpeak(pz.q);
+}
+var TARGET_GOALS = { liberties: 1, countLibs: 1, atari: 1, escape: 1, captureTarget: 1 };
+function drawPuzzle(extra) {
+  extra = extra || {};
+  var st = L.st, pz = st.pz, marks = L.marks.slice();
+  if ((pz.showMarks || pz.goal === 'tiger') && !st.done) st.marks.forEach(function (i) { if (!st.pos.b[i]) marks.push({ i: i, type: 'star' }); });
+  if (TARGET_GOALS[pz.goal] && st.pos.b[st.targets[0]]) st.targets.forEach(function (i) { marks.push({ i: i, type: 'target' }); });
+  if (extra.wrong != null) marks.push({ i: extra.wrong, type: 'wrong' });
+  lessonBoard.render({ pos: extra.pos || st.pos, last: extra.last != null ? extra.last : L.lastMove, marks: marks, newStones: extra.newStones, fading: extra.fading, hint: L.hint });
+}
+function fb(msg, cls) { var f = $('#pz-fb'); if (!f) return; f.className = 'feedback ' + (cls || ''); f.textContent = msg || ''; }
+var ILLEGAL_MSG = { occupied: '那裡已經有棋子了喔！', suicide: '那裡是禁著點，黑子下去會沒有氣，不能下！', ko: '這是「劫」，不能馬上提回來喔！' };
+function onPuzzleTap(idx) {
+  var st = L.st; if (!st || st.done || L.busy || st.choice) return;
+  var before = st.pos, goal = st.stage === 1 ? 'captureAny' : st.pz.goal;
+  var r = PZ.judge(st, idx);
+  L.hint = [];
+  if (!r.ok) {
+    L.mistakes++;
+    sfx.bad();
+    fb(r.illegal ? ILLEGAL_MSG[r.illegal] : (r.msg || '再試試看！可以按「提示」喔。'), 'bad');
+    drawPuzzle({ wrong: idx });
+    return;
+  }
+  if (goal === 'liberties') {
+    L.marks.push({ i: idx, type: 'lib' }); sfx.place(); fb('找到了！' + r.progress, 'info');
+    drawPuzzle(); if (r.done) success(); return;
+  }
+  if (goal === 'illegal' || goal === 'trueEye' || goal === 'falseEye') {
+    L.marks.push({ i: idx, type: goal === 'illegal' ? 'nope' : 'good' }); drawPuzzle(); success(); return;
+  }
+  // a stone was played
+  var p1 = E.play(before, idx, BLACK);
+  L.lastMove = idx;
+  var fading = p1.captured.map(function (i) { return { i: i, color: WHITE }; });
+  (p1.captured.length ? sfx.capture : sfx.place)();
+  drawPuzzle({ pos: p1.pos, last: idx, newStones: new Set([idx]), fading: fading });
+  if (r.done) { success(); return; }
+  // computer reply
+  L.busy = true;
+  fb(st.stage === 1 ? '雙打吃！白棋只能救一塊……' : '打得好！看看白棋怎麼逃……', 'info');
+  setTimeout(function () {
+    L.busy = false;
+    if (r.reply != null) {
+      L.lastMove = r.reply; sfx.place();
+      drawPuzzle({ newStones: new Set([r.reply]), fading: (r.replyCaptured || []).map(function (i) { return { i: i, color: BLACK }; }) });
+      fb(st.stage === 1 ? '白棋救了一塊。快把另一塊吃掉！' : '白棋逃跑了！繼續追！', 'info');
+    } else { drawPuzzle(); fb('白棋沒辦法了，吃掉它！', 'info'); }
+  }, 750);
+}
+function puzzleHint() {
+  var st = L.st, pz = st.pz; if (st.done) return;
+  L.hintLevel++;
+  if (L.hintLevel === 1 || st.choice) { fb('💡 ' + pz.hint, 'info'); maybeSpeak(pz.hint); if (st.choice && L.hintLevel > 1) L.mistakes++; return; }
+  L.mistakes++;
+  var sol = PZ.solutions(st);
+  var maxShow = st.pz.goal === 'liberties' ? 1 : 2;
+  L.hint = sol.slice(0, maxShow);
+  fb('💡 看看發亮的地方！', 'info');
+  drawPuzzle();
+}
+function success() {
+  var st = L.st, pz = st.pz;
+  st.done = true; L.hint = [];
+  var msg = (pz.ok2 && st.stage === 1 ? pz.ok2 : pz.ok) || '答對了！';
+  fb('🎉 ' + msg, 'good'); sfx.good(); confetti(10); maybeSpeak(msg);
+  if (st.pz.showMarks || st.pz.goal === 'tiger') drawPuzzle();
+  $('#pz-next').style.display = '';
+  $('#pz-hint').disabled = true;
+}
+function fail() { L.mistakes++; sfx.bad(); fb('再想一想！可以按「提示」喔。', 'bad'); }
+function nextPuzzle() {
+  if (L.p + 1 < L.lesson.puzzles.length) { L.p++; renderPuzzle(); return; }
+  // lesson complete
+  var m = L.mistakes, stars = m <= 1 ? 3 : m <= 4 ? 2 : 1, id = L.lesson.id;
+  store.stars[id] = Math.max(store.stars[id] || 0, stars); save();
+  var nextI = L.i + 1 < LESSONS.length ? L.i + 1 : -1;
+  modal('<div style="font-size:64px">🏅</div><h2>過關了！</h2><div class="stars">' + '★★★'.slice(0, stars) + '<span style="color:#ddd">' + '★★★'.slice(0, 3 - stars) + '</span></div>' +
+    '<p>「' + h(L.lesson.title) + '」學會了！' + (stars < 3 ? '<br><span class="small">少用提示、少答錯，就能拿到三顆星喔！</span>' : '') + '</p>' +
+    '<div class="btn-row">' + (nextI >= 0 ? '<button class="btn green" data-act="nextLesson">下一關 ➡️</button>' : '<button class="btn green" data-act="goGame">跟電腦下棋 🤖</button>') +
+    '<button class="btn gray" data-act="toMap">關卡地圖</button></div>');
+  sfx.win(); confetti(40);
+}
+function modal(html) { $('#modal').innerHTML = html; $('#overlay').classList.add('show'); }
+function closeModal() { $('#overlay').classList.remove('show'); }
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest('[data-act]'); if (!b) return;
+  var a = b.getAttribute('data-act');
+  closeModal();
+  if (a === 'nextLesson') openLesson(L.i + 1);
+  else if (a === 'toMap') renderMap();
+  else if (a === 'goGame') renderSetup();
+  else if (a === 'close') {}
+  else if (a === 'confirmMove') { var m = G.pending; G.pending = -1; if (m >= 0) humanPlay(m, true); }
+  else if (a === 'newGame') renderSetup();
+  else if (a === 'resume') resumeGame();
+  else if (a === 'forcePass') humanPass(true);
+});
+
+/* ---------------- game setup ---------------- */
+var KOMIS = [0.5, 3.5, 5.5, 6.5];
+function renderSetup() {
+  var gs = store.game;
+  gs.size = 19;
+  if (gs.handicap > 0) gs.color = BLACK;
+  var seg = function (name, items, val) {
+    return '<div class="seg">' + items.map(function (it) {
+      return '<button data-set="' + name + '" data-val="' + it[0] + '" class="' + (String(it[0]) === String(val) ? 'on' : '') + '"' + (it[2] ? ' disabled' : '') + '>' + it[1] + '</button>';
+    }).join('') + '</div>';
+  };
+  $('#setup-body').innerHTML =
+    '<div class="banner">和同學上課一樣，用完整的 <b>19 路</b> 棋盤對弈 ⚫⚪</div>' +
+    '<div class="setup-group"><h3>🤖 電腦有多厲害</h3>' + seg('level', [[0, '🐣 入門'], [1, '🐥 初級'], [2, '🦊 中級'], [3, '🐯 高級']], gs.level) +
+    '<div class="seg-note">入門：很容易贏；初級：會吃子也會逃；中級／高級：會想一想（大約 1～2 秒）。</div></div>' +
+    '<div class="setup-group"><h3>⚫⚪ 我要下</h3>' + seg('color', [[BLACK, '⚫ 黑棋（先下）'], [WHITE, '⚪ 白棋', gs.handicap > 0]], gs.color) + '</div>' +
+    '<div class="setup-group"><h3>🎁 讓子（先送你幾顆黑子）</h3>' + seg('handicap', [0, 2, 3, 4, 5, 6, 7, 8, 9].map(function (x) { return [x, x === 0 ? '不讓' : x + ' 子']; }), gs.handicap) +
+    '<div class="seg-note">讓子時你下黑棋，白棋（電腦）先下；貼目自動變成 0.5。</div></div>' +
+    '<div class="setup-group"><h3>➕ 貼目（白棋後下，多加的分數）</h3>' + seg('komi', KOMIS.map(function (k) { return [k, k + ' 目', gs.handicap > 0]; }), gs.handicap > 0 ? 0.5 : gs.komi) + '</div>' +
+    '<div class="setup-group"><h3>🛟 小幫手</h3>' +
+    '<div class="switch-row">被打吃時提醒我（紅色虛線圈）<button class="switch' + (gs.atariAlert ? ' on' : '') + '" data-toggle="atariAlert"></button></div>' +
+    '<div class="switch-row">我下到只剩一口氣的地方時，先問我<button class="switch' + (gs.selfAtariWarn ? ' on' : '') + '" data-toggle="selfAtariWarn"></button></div>' +
+    '<div class="switch-row">點兩下才下子（觸控預設開啟，避免點錯）<button class="switch' + (gs.tapConfirm ? ' on' : '') + '" data-toggle="tapConfirm"></button></div>' +
+    '<div class="switch-row">顯示座標（A–T、1–19）<button class="switch' + (gs.showCoords ? ' on' : '') + '" data-toggle="showCoords"></button></div></div>' +
+    '<div class="btn-row"><button class="btn green" id="start-game" style="font-size:28px;padding:18px 40px">開始下棋！</button></div>';
+  $('#start-game').onclick = startGame;
+  show('setup', '跟電腦下棋');
+}
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest('[data-set]');
+  if (b && !b.disabled) {
+    var k = b.getAttribute('data-set'), v = Number(b.getAttribute('data-val'));
+    store.game[k] = v;
+    if (k === 'handicap' && v > 0) store.game.komi = 0.5;
+    if (k === 'handicap' && v === 0 && store.game.komi === 0.5) store.game.komi = 6.5;
+    save(); renderSetup(); return;
+  }
+  var t = ev.target.closest('[data-toggle]');
+  if (t) { var key = t.getAttribute('data-toggle'); store.game[key] = !store.game[key]; save(); t.classList.toggle('on', store.game[key]); }
+});
+
+/* ---------------- game ---------------- */
+var G = { game: null, me: BLACK, ai: WHITE, level: 0, thinking: false, scoring: false, dead: null, pending: -1, tapSel: -1, hint: null, msg: '' };
+var gameBoard = null;
+function startGame() {
+  var gs = store.game; gs.size = 19; var n = 19;
+  var komi = gs.handicap > 0 ? 0.5 : gs.komi;
+  G.game = new E.Game(n, komi); G.me = gs.handicap > 0 ? BLACK : gs.color; G.ai = E.opp(G.me); G.level = gs.level;
+  G.scoring = false; G.dead = null; G.thinking = false; G.hint = null; G.pending = -1; G.tapSel = -1; G.fading = null; G.newStone = -1;
+  if (gs.handicap > 0) {
+    E.handicapPoints(n, gs.handicap).forEach(function (i) { G.game.pos.b[i] = BLACK; });
+    G.game.pos.toPlay = WHITE;
+  }
+  $('#game-body').innerHTML =
+    '<div class="game-layout game-19"><div class="board-col">' +
+    '<div class="players"><div class="player" id="pl-b"><span class="stone b"></span><div><b id="nm-b"></b><div class="small" id="cap-b"></div></div></div>' +
+    '<div class="player" id="pl-w"><span class="stone w"></span><div><b id="nm-w"></b><div class="small" id="cap-w"></div></div></div></div>' +
+    '<div class="board-wrap board-19" id="game-board"></div></div><div class="side-col">' +
+    '<div class="bubble"><div class="who" id="g-who">🐼</div><div class="txt" id="g-msg"></div><button class="say" id="g-say">🔊</button></div>' +
+    '<div class="btn-row" id="g-btns"><button class="btn orange" id="g-hint">💡 提示</button><button class="btn purple" id="g-undo">↩️ 悔棋</button>' +
+    '<button class="btn gray" id="g-pass">✋ 停一手</button><button class="btn red" id="g-new">🔄 新的一盤</button></div>' +
+    '<div id="g-result"></div></div></div>';
+  gameBoard = new Board($('#game-board'), onGameTap);
+  gameBoard.allowHover = true; gameBoard.hoverColor = G.me;
+  $('#g-hint').onclick = gameHint; $('#g-undo').onclick = gameUndo; $('#g-pass').onclick = function () { humanPass(false); };
+  $('#g-new').onclick = function () { modal('<h2>要重新開始嗎？</h2><p>這一盤會不見喔。</p><div class="btn-row"><button class="btn green" data-act="newGame">好，重新開始</button><button class="btn gray" data-act="close">繼續下</button></div>'); };
+  $('#g-say').onclick = function () { speak($('#g-msg').textContent); };
+  show('game', n + '路 · ' + AI.LEVELS[G.level].name);
+  setMsg(G.me === BLACK && !gs.handicap ? '你下黑棋，先下！點棋盤上的交叉點下子。' : '你下' + (G.me === BLACK ? '黑' : '白') + '棋，電腦先下。');
+  drawGame();
+  if (G.game.pos.toPlay === G.ai) computerTurn();
+}
+function setMsg(m, who) { G.msg = m; var el = $('#g-msg'); if (el) el.textContent = m; var w = $('#g-who'); if (w) w.textContent = who || '🐼'; }
+function drawGame() {
+  var g = G.game, pos = g.pos, lm = g.lastMove();
+  var me = G.me, rings = [], marks = [];
+  if (!G.scoring && store.game.atariAlert) {
+    var w = AI.warnings(pos, me);
+    w.myAtari.forEach(function (gr) { gr.stones.forEach(function (i) { rings.push({ i: i, color: '#e53935' }); }); });
+    w.oppAtari.forEach(function (gr) { gr.stones.forEach(function (i) { rings.push({ i: i, color: '#fbc02d' }); }); });
+  }
+  var hint = [];
+  if (G.hint && G.hint.move >= 0) hint.push(G.hint.move);
+  if (G.tapSel >= 0) marks.push({ i: G.tapSel, type: 'preview' });
+  var sc = G.scoring ? E.score(pos.b, pos.n, G.dead, g.komi) : null;
+  gameBoard.render({ pos: pos, last: lm && lm.idx >= 0 ? lm.idx : -1, rings: rings, hint: hint, marks: marks, coords: !!store.game.showCoords,
+    newStones: G.newStone >= 0 ? new Set([G.newStone]) : null, fading: G.fading, dead: G.scoring ? G.dead : null, owner: sc ? sc.owner : null });
+  G.fading = null; G.newStone = -1;
+  gameBoard.allowHover = !G.scoring && !g.over;
+  var meName = '你', aiName = '電腦（' + AI.LEVELS[G.level].name + '）';
+  $('#nm-b').textContent = G.me === BLACK ? meName : aiName; $('#nm-w').textContent = G.me === WHITE ? meName : aiName;
+  $('#cap-b').textContent = '提子 ' + g.caps[BLACK]; $('#cap-w').textContent = '提子 ' + g.caps[WHITE] + '　貼目 ' + g.komi;
+  $('#pl-b').classList.toggle('turn', !g.over && pos.toPlay === BLACK); $('#pl-w').classList.toggle('turn', !g.over && pos.toPlay === WHITE);
+  var busy = G.thinking || G.scoring;
+  $('#g-hint').disabled = busy || pos.toPlay !== G.me; $('#g-pass').disabled = busy || pos.toPlay !== G.me;
+  $('#g-undo').disabled = G.thinking || !g.moves.some(function (m) { return m.color === G.me; });
+  if (sc) renderScore(sc); else $('#g-result').innerHTML = '';
+}
+function onGameTap(idx) {
+  var g = G.game;
+  if (G.scoring) { toggleDead(idx); return; }
+  if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
+  var r = E.play(g.pos, idx, G.me);
+  if (!r.ok) { sfx.bad(); setMsg(ILLEGAL_MSG[r.reason].replace('黑子', '你的子')); return; }
+  if (store.game.tapConfirm && G.tapSel !== idx) { G.tapSel = idx; setMsg('半透明的棋子就是你要下的地方。再點一次就下定了！（點別的地方可以改）'); drawGame(); return; }
+  G.tapSel = -1;
+  if (store.game.selfAtariWarn && AI.isSelfAtari(g.pos, idx, G.me)) {
+    G.pending = idx; sfx.warn();
+    modal('<div style="font-size:54px">⚠️</div><h2>等一下！</h2><p>這樣下，你的子只剩<b>一口氣</b>，<br>可能會被吃掉喔！</p><div class="btn-row"><button class="btn green" data-act="close">再想想</button><button class="btn gray" data-act="confirmMove">還是要下</button></div>');
+    return;
+  }
+  humanPlay(idx);
+}
+function humanPlay(idx) {
+  var g = G.game, r = g.play(idx);
+  if (!r.ok) return;
+  G.hint = null; G.newStone = idx;
+  G.fading = r.captured.map(function (i) { return { i: i, color: G.ai }; });
+  (r.captured.length ? sfx.capture : sfx.place)();
+  if (r.captured.length) setMsg('提掉 ' + r.captured.length + ' 顆子！好棒！', '😄'); else setMsg('');
+  drawGame();
+  computerTurn();
+}
+function humanPass(force) {
+  var g = G.game; if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
+  if (force !== true && g.moves.length < g.n * g.n / 2) {
+    modal('<div style="font-size:54px">✋</div><h2>真的要停一手嗎？</h2><p>棋盤上還有很多空的地方喔！<br>兩個人都停一手，這盤棋就結束了。</p><div class="btn-row"><button class="btn green" data-act="close">繼續下</button><button class="btn gray" data-act="forcePass">要停一手</button></div>');
+    return;
+  }
+  g.play(-1); G.hint = null;
+  if (g.over) { startScoring(); return; }
+  setMsg('你停一手。'); drawGame(); computerTurn();
+}
+function computerTurn() {
+  var g = G.game; if (g.over || g.pos.toPlay !== G.ai) return;
+  G.thinking = true;
+  setMsg('電腦想一想……', '🤔'); drawGame();
+  var t0 = Date.now();
+  setTimeout(function () {
+    var lm = g.lastMove();
+    var res = AI.chooseMove(g.pos, G.ai, { level: G.level, komi: g.komi, moveNo: g.moves.length, oppPassed: !!(lm && lm.idx < 0) });
+    var wait = Math.max(0, 450 - (Date.now() - t0));
+    setTimeout(function () {
+      G.thinking = false;
+      var r = g.play(res.move);
+      if (!r.ok) r = g.play(-1);
+      if (res.move < 0) {
+        if (g.over) { startScoring(); return; }
+        setMsg('電腦停一手。如果你覺得地都圍好了，也按「✋ 停一手」就可以數地囉！', '🤖');
+        drawGame(); return;
+      }
+      G.newStone = res.move; G.fading = r.captured.map(function (i) { return { i: i, color: G.me }; });
+      (r.captured.length ? sfx.capture : sfx.place)();
+      var w = AI.warnings(g.pos, G.me), msg = '';
+      if (r.captured.length) msg = '哎呀，電腦提掉你 ' + r.captured.length + ' 顆子。';
+      if (store.game.atariAlert && w.myAtari.length) {
+        var cnt = 0; w.myAtari.forEach(function (gr) { cnt += gr.stones.length; });
+        msg += '⚠️ 小心！你有 ' + cnt + ' 顆子被打吃了（紅色圈圈，只剩一口氣）！';
+        sfx.warn();
+      } else if (store.game.atariAlert && w.oppAtari.length) msg += '👀 有白子只剩一口氣（黃色圈圈），看看能不能吃掉它！'.replace('白', G.ai === WHITE ? '白' : '黑');
+      setMsg(msg || '輪到你了！', msg ? '🐼' : '🙂');
+      drawGame();
+    }, wait);
+  }, 60);
+}
+function gameHint() {
+  var g = G.game; if (G.thinking || g.over || g.pos.toPlay !== G.me) return;
+  G.thinking = true; setMsg('讓我想一想……', '🤔'); drawGame();
+  setTimeout(function () {
+    var lm = g.lastMove();
+    var hnt = AI.hint(g.pos, G.me, { komi: g.komi, moveNo: g.moves.length, oppPassed: !!(lm && lm.idx < 0), time: g.pos.n >= 19 ? 700 : 700 });
+    G.thinking = false; G.hint = hnt;
+    var txt = hnt.text.replace(/黑子/g, G.me === BLACK ? '黑子' : '白子');
+    setMsg('💡 ' + txt); maybeSpeak(txt);
+    drawGame();
+  }, 60);
+}
+function gameUndo() {
+  var g = G.game; if (G.thinking) return;
+  if (G.scoring) { G.scoring = false; G.dead = null; }
+  // go back until it's my turn and one of my moves has been taken back
+  var undoneMine = false;
+  while (g.moves.length) {
+    var m = g.lastMove(); g.undo();
+    if (m.color === G.me) { undoneMine = true; if (g.pos.toPlay === G.me) break; }
+  }
+  if (!undoneMine) return;
+  G.hint = null; setMsg('悔棋了，再想一想要下哪裡。'); drawGame();
+  if (g.pos.toPlay === G.ai) computerTurn();
+}
+function startScoring() {
+  G.scoring = true; G.thinking = true; setMsg('兩個人都停一手，棋下完了！數地中……', '🧮'); drawGame();
+  setTimeout(function () {
+    G.dead = AI.estimateDead(G.game.pos, G.game.n >= 19 ? { time: 280, playouts: 120 } : { time: 500, playouts: 2500 }).dead;
+    G.thinking = false;
+    setMsg('棋下完了！灰灰打叉的是「死子」，會被拿掉。如果算錯了，點一下那塊棋就可以改。', '🧮');
+    drawGame();
+    var sc = E.score(G.game.pos.b, G.game.pos.n, G.dead, G.game.komi);
+    if (sc.winner === G.me) { sfx.win(); confetti(50); } else sfx.place();
+  }, 80);
+}
+function toggleDead(idx) {
+  var pos = G.game.pos; if (!pos.b[idx] || G.thinking) return;
+  var gr = E.group(pos.b, pos.n, idx), isDead = G.dead.has(idx);
+  gr.stones.forEach(function (s) { if (isDead) G.dead.delete(s); else G.dead.add(s); });
+  sfx.place(); drawGame();
+}
+function renderScore(sc) {
+  var me = G.me, myName = function (c) { return c === me ? '你' : '電腦'; };
+  var win = sc.winner === 0 ? '平手！' : (sc.winner === BLACK ? '⚫ 黑棋' : '⚪ 白棋') + '（' + myName(sc.winner) + '）贏 ' + sc.diff + ' 目！';
+  $('#g-result').innerHTML = '<div class="result"><div class="big">' + (sc.winner === me ? '🏆 ' : '') + win + '</div>' +
+    '<div>⚫ 黑棋：子 ' + sc.stonesB + ' ＋ 地 ' + sc.terrB + ' ＝ <b>' + sc.black + '</b></div>' +
+    '<div>⚪ 白棋：子 ' + sc.stonesW + ' ＋ 地 ' + sc.terrW + ' ＋ 貼目 ' + sc.komi + ' ＝ <b>' + sc.white + '</b></div>' +
+    '<div class="small">（數子法：棋子＋圍住的空點。小方塊表示是誰的地。）</div>' +
+    (sc.winner === me ? '<div style="font-size:22px;margin-top:6px">你好厲害！🎉</div>' : sc.winner ? '<div style="font-size:20px;margin-top:6px">沒關係，再下一盤會更好！💪</div>' : '') +
+    '<div class="btn-row"><button class="btn green" data-act="newGame">再下一盤</button><button class="btn purple" data-act="resume">回去繼續下</button></div></div>';
+}
+function resumeGame() {
+  var g = G.game; G.scoring = false; G.dead = null;
+  // take back the final pass so play can continue
+  if (g.over) { g.undo(); }
+  setMsg('繼續下吧！');
+  drawGame();
+  if (g.pos.toPlay === G.ai) computerTurn();
+}
+
+/* ---------------- parents ---------------- */
+var gateAns = 0;
+function renderParentGate() {
+  var a = 6 + ((Math.random() * 4) | 0), b = 6 + ((Math.random() * 4) | 0); gateAns = a * b;
+  $('#parent-body').innerHTML = '<div class="parent-box" style="text-align:center"><h3>👨‍👩‍👧 家長專區</h3><p>請家長回答：' + a + ' × ' + b + ' ＝ ？</p>' +
+    '<input class="gate" id="gate-in" inputmode="numeric" autocomplete="off"> <button class="btn" id="gate-ok">進入</button></div>';
+  $('#gate-ok').onclick = function () { if (+$('#gate-in').value === gateAns) renderParent(); else { sfx.bad(); toast('答案不對喔'); } };
+  show('parent', '家長設定');
+}
+function renderParent() {
+  var sw = function (key, label) { return '<div class="switch-row">' + label + '<button class="switch' + (store[key] ? ' on' : '') + '" data-ptoggle="' + key + '"></button></div>'; };
+  $('#parent-body').innerHTML =
+    '<div class="parent-box"><h3>⚙️ 設定</h3>' + sw('unlockAll', '全部關卡解鎖（不用依序過關）') + sw('sound', '音效') + sw('autoSpeak', '自動朗讀題目（需要裝置有中文語音）') +
+    '<div class="btn-row" style="justify-content:flex-start"><button class="btn red" id="reset-prog">重設學習進度</button></div></div>' +
+    '<div class="parent-box"><h3>📊 學習進度</h3>' + LESSONS.map(function (Ls, i) { return (i + 1) + '. ' + h(Ls.title) + '：' + (store.stars[Ls.id] ? '★'.repeat(store.stars[Ls.id]) : '—'); }).join('<br>') + '</div>' +
+    '<div class="parent-box"><h3>📖 給家長的說明</h3>' +
+    '<p>・共 ' + LESSONS.length + ' 個關卡，從規則、氣、提子一路到打劫、數地和布局。每題都會立即判斷對錯；按一次「提示」給文字提示，再按一次會直接標出答案（會影響星星數）。</p>' +
+    '<p>・跟電腦下棋固定用完整的 <b>19 路</b> 棋盤（和上課一樣），使用<b>數子法（中國／應氏規則）</b>：棋子＋圍住的空點＝分數，白棋加貼目（預設 6.5）。禁止自殺（禁著點）、單劫不能立刻提回。雙方連續停一手即終局，程式會估計死子（可點選修正）。</p>' +
+    '<p>・電腦等級：入門很好贏；初級會吃子和逃跑；中級／高級會想一想，大約 1～2 秒一手（19 路會自動縮短思考）。</p>' +
+    '<p>・「提示」會標出建議的位置並用簡單的話說明原因（提子、逃跑、雙打吃、征子、補強、佔角、做眼……）。</p>' +
+    '<p>・進度存在這台裝置的瀏覽器裡（localStorage），清除瀏覽器資料會一起清掉。</p></div>';
+  $('#reset-prog').onclick = function () { if (confirm('確定要把所有星星和進度清除嗎？')) { store.stars = {}; save(); toast('已重設'); renderParent(); } };
+  show('parent', '家長設定');
+}
+document.addEventListener('click', function (ev) {
+  var t = ev.target.closest('[data-ptoggle]'); if (!t) return;
+  var k = t.getAttribute('data-ptoggle'); store[k] = !store[k]; save(); t.classList.toggle('on', store[k]);
+  updateSoundBtn();
+});
+function updateSoundBtn() { $('#btn-sound').textContent = store.sound ? '🔊' : '🔇'; }
+
+/* ---------------- wiring ---------------- */
+$('#btn-home').onclick = function () {
+  if (current === 'lesson') renderMap(); else if (current === 'game') { if (G.thinking) return; renderSetup(); } else renderHome();
+};
+$('#btn-sound').onclick = function () { store.sound = !store.sound; save(); updateSoundBtn(); if (store.sound) sfx.place(); };
+$('#go-lessons').onclick = renderMap;
+$('#go-game').onclick = renderSetup;
+$('#go-parent').onclick = renderParentGate;
+$('#overlay').addEventListener('click', function (ev) { if (ev.target.id === 'overlay') closeModal(); });
+updateSoundBtn();
+renderHome();
+window.__go = { store: store, openLesson: openLesson, renderMap: renderMap, renderSetup: renderSetup, startGame: startGame, G: G, get L() { return L; }, onPuzzleTap: function (i) { onPuzzleTap(i); }, onGameTap: function (i) { onGameTap(i); }, gameHint: gameHint, startScoring: startScoring, renderPuzzle: renderPuzzle, nextPuzzle: nextPuzzle };
+})();
+
+</script>
+</body>
+</html>
